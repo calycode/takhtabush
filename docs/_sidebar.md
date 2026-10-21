@@ -1,0 +1,36 @@
+- [Takhtabush documentation](README.md)
+- **User guide**
+   - [User guide](user/README.md)
+   - [Getting started](user/getting-started.md)
+   - [Decks and cards](user/decks-and-cards.md)
+   - [Studying](user/studying.md)
+   - [Progress](user/progress.md)
+   - [Import and export](user/import-export.md)
+   - [Account and sessions](user/account.md)
+   - [Use an AI assistant](user/ai-assistant.md)
+   - [FAQ](user/faq.md)
+- **Developer guide**
+   - [Developer guide](developer/README.md)
+   - [Self-hosting](developer/self-hosting.md)
+   - [Architecture](developer/architecture.md)
+   - [Configuration](developer/configuration.md)
+   - [Security](developer/security.md)
+   - [MCP internals](developer/mcp.md)
+   - [Scheduler](developer/scheduler.md)
+   - [Preact + shadcn (Base UI) + Tailwind v4](developer/frontend.md)
+   - [Theming](developer/theming.md)
+   - [Clef and AI Gateway](developer/clef.md)
+   - [Contributing](developer/contributing.md)
+   - [Agent feedback (Agentation)](developer/agent-feedback.md)
+- **Reference**
+   - [MCP tools](developer/reference/mcp-tools.md)
+   - [HTTP API](developer/reference/api.md)
+
+- **Project**
+   - [GitHub](https://github.com/calycode/takhtabush)
+   - [Design specification](https://github.com/calycode/takhtabush/blob/main/SPEC.md)
+   - [Contributing](https://github.com/calycode/takhtabush/blob/main/CONTRIBUTING.md)
+   - [Security policy](https://github.com/calycode/takhtabush/blob/main/SECURITY.md)
+   - [MIT license](https://github.com/calycode/takhtabush/blob/main/LICENSE)
+
+<small>MIT licensed. Built with Cloudflare Workers.</small>

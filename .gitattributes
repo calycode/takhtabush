@@ -1,0 +1,4 @@
+# Shell scripts and Husky hooks must use LF on every platform so tooling that
+# parses them (e.g. Knip's Husky plugin) does not choke on a stray CR.
+.husky/** text eol=lf
+*.sh text eol=lf

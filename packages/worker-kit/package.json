@@ -1,0 +1,21 @@
+{
+   "name": "@caly/worker-kit",
+   "version": "0.1.0",
+   "private": true,
+   "license": "MIT",
+   "type": "module",
+   "exports": {
+      ".": "./src/index.ts"
+   },
+   "scripts": {
+      "check-types": "tsc --noEmit -p tsconfig.json",
+      "lint": "eslint src"
+   },
+   "dependencies": {
+      "hono": "^4.6.0"
+   },
+   "devDependencies": {
+      "@cloudflare/workers-types": "^5.0.0",
+      "typescript": "^6.0.3"
+   }
+}

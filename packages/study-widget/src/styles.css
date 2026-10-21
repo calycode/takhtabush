@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@source '../../ui/src';
+@source './';
+@import '../../ui/src/styles/theme.css';
+
+body {
+   margin: 0;
+   padding: 0.75rem;
+}

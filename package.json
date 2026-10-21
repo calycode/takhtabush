@@ -1,0 +1,67 @@
+{
+   "name": "takhtabush",
+   "version": "0.1.0",
+   "private": true,
+   "license": "MIT",
+   "description": "A self-hosted flashcard learning app on one Cloudflare Worker.",
+   "author": "Mihály Tóth",
+   "repository": {
+      "type": "git",
+      "url": "git+https://github.com/calycode/takhtabush.git"
+   },
+   "homepage": "https://github.com/calycode/takhtabush#readme",
+   "bugs": {
+      "url": "https://github.com/calycode/takhtabush/issues"
+   },
+   "type": "module",
+   "packageManager": "pnpm@10.15.0",
+   "engines": {
+      "node": ">=22",
+      "pnpm": ">=10"
+   },
+   "scripts": {
+      "dev": "run-p dev:web dev:worker",
+      "dev:web": "pnpm --filter @caly/webapp dev",
+      "dev:worker": "wrangler dev --config wrangler.dev.jsonc --port 8787",
+      "build": "pnpm build:assets",
+      "build:assets": "turbo run build --filter=@caly/webapp --filter=@caly/study-widget",
+      "build:worker": "wrangler deploy --dry-run --config wrangler.jsonc --outdir dist",
+      "build:all": "turbo run build && pnpm build:worker",
+      "worker:build": "pnpm build:worker",
+      "lint": "turbo run lint",
+      "check-types": "turbo run check-types",
+      "test": "turbo run test",
+      "knip": "knip",
+      "format": "prettier --write .",
+      "format:check": "prettier --check .",
+      "deploy": "pnpm build && wrangler deploy --config wrangler.jsonc",
+      "docs:dev": "pnpm docs:build && node scripts/docs/serve.mjs docs-site 3030",
+      "docs:generate": "tsx scripts/docs/generate.ts && prettier --write docs/manifest.json docs/_sidebar.md docs/developer/reference",
+      "docs:build": "pnpm docs:generate && tsx scripts/docs/build.ts",
+      "docs:preview": "node scripts/docs/serve.mjs docs-site 3031",
+      "db:migrate:local": "wrangler d1 migrations apply DB --local --config wrangler.dev.jsonc",
+      "db:migrate:remote": "wrangler d1 migrations apply DB --remote --config wrangler.jsonc",
+      "db:migrate:check": "wrangler d1 migrations list DB --local --config wrangler.dev.jsonc",
+      "prepare": "husky"
+   },
+   "devDependencies": {
+      "@eslint/js": "^9.39.4",
+      "esbuild": "^0.28.2",
+      "eslint": "^9.39.4",
+      "husky": "^9.1.7",
+      "knip": "^5.0.0",
+      "lint-staged": "^17.0.7",
+      "marked": "^18.1.1",
+      "minisearch": "^7.2.0",
+      "npm-run-all2": "^8.0.4",
+      "prettier": "^3.8.3",
+      "tsx": "^4.23.15",
+      "turbo": "^2.5.0",
+      "typescript": "^6.0.3",
+      "typescript-eslint": "^8.46.0",
+      "wrangler": "^4.0.0"
+   },
+   "lint-staged": {
+      "*": "prettier --write --ignore-unknown"
+   }
+}

@@ -1,0 +1,8 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@source '../../../ui/src';
+@import '@fontsource-variable/roboto';
+@import '@fontsource-variable/noto-sans';
+@import '../../../ui/src/styles/theme.css';

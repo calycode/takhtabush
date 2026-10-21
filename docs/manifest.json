@@ -1,0 +1,298 @@
+{
+   "version": 1,
+   "generatedAt": "2026-10-21T18:42:52.118Z",
+   "hash": "e7d39750dcd20e6a",
+   "entries": [
+      {
+         "section": "Overview",
+         "path": "",
+         "title": "Takhtabush documentation",
+         "group": null,
+         "parent": null,
+         "order": 0,
+         "source": "guide",
+         "segments": [],
+         "file": "README.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/",
+         "title": "User guide",
+         "group": null,
+         "parent": null,
+         "order": 10.001,
+         "source": "guide",
+         "segments": ["user"],
+         "file": "user/README.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/getting-started",
+         "title": "Getting started",
+         "group": null,
+         "parent": null,
+         "order": 11.002,
+         "source": "guide",
+         "segments": ["user", "getting-started"],
+         "file": "user/getting-started.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/decks-and-cards",
+         "title": "Decks and cards",
+         "group": null,
+         "parent": null,
+         "order": 12.003,
+         "source": "guide",
+         "segments": ["user", "decks-and-cards"],
+         "file": "user/decks-and-cards.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/studying",
+         "title": "Studying",
+         "group": null,
+         "parent": null,
+         "order": 13.004,
+         "source": "guide",
+         "segments": ["user", "studying"],
+         "file": "user/studying.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/progress",
+         "title": "Progress",
+         "group": null,
+         "parent": null,
+         "order": 14.005,
+         "source": "guide",
+         "segments": ["user", "progress"],
+         "file": "user/progress.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/import-export",
+         "title": "Import and export",
+         "group": null,
+         "parent": null,
+         "order": 15.006,
+         "source": "guide",
+         "segments": ["user", "import-export"],
+         "file": "user/import-export.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/account",
+         "title": "Account and sessions",
+         "group": null,
+         "parent": null,
+         "order": 16.007,
+         "source": "guide",
+         "segments": ["user", "account"],
+         "file": "user/account.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/ai-assistant",
+         "title": "Use an AI assistant",
+         "group": null,
+         "parent": null,
+         "order": 17.008,
+         "source": "guide",
+         "segments": ["user", "ai-assistant"],
+         "file": "user/ai-assistant.md"
+      },
+      {
+         "section": "User guide",
+         "path": "user/faq",
+         "title": "FAQ",
+         "group": null,
+         "parent": null,
+         "order": 18.009,
+         "source": "guide",
+         "segments": ["user", "faq"],
+         "file": "user/faq.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/",
+         "title": "Developer guide",
+         "group": null,
+         "parent": null,
+         "order": 30.01,
+         "source": "guide",
+         "segments": ["developer"],
+         "file": "developer/README.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/self-hosting",
+         "title": "Self-hosting",
+         "group": null,
+         "parent": null,
+         "order": 31.011,
+         "source": "guide",
+         "segments": ["developer", "self-hosting"],
+         "file": "developer/self-hosting.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/architecture",
+         "title": "Architecture",
+         "group": null,
+         "parent": null,
+         "order": 32.012,
+         "source": "guide",
+         "segments": ["developer", "architecture"],
+         "file": "developer/architecture.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/configuration",
+         "title": "Configuration",
+         "group": null,
+         "parent": null,
+         "order": 33.013,
+         "source": "guide",
+         "segments": ["developer", "configuration"],
+         "file": "developer/configuration.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/security",
+         "title": "Security",
+         "group": null,
+         "parent": null,
+         "order": 34.014,
+         "source": "guide",
+         "segments": ["developer", "security"],
+         "file": "developer/security.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/mcp",
+         "title": "MCP internals",
+         "group": null,
+         "parent": null,
+         "order": 35.015,
+         "source": "guide",
+         "segments": ["developer", "mcp"],
+         "file": "developer/mcp.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/scheduler",
+         "title": "Scheduler",
+         "group": null,
+         "parent": null,
+         "order": 36.016,
+         "source": "guide",
+         "segments": ["developer", "scheduler"],
+         "file": "developer/scheduler.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/frontend",
+         "title": "Preact + shadcn (Base UI) + Tailwind v4",
+         "group": null,
+         "parent": null,
+         "order": 37.017,
+         "source": "guide",
+         "segments": ["developer", "frontend"],
+         "file": "developer/frontend.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/theming",
+         "title": "Theming",
+         "group": null,
+         "parent": null,
+         "order": 38.018,
+         "source": "guide",
+         "segments": ["developer", "theming"],
+         "file": "developer/theming.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/clef",
+         "title": "Clef and AI Gateway",
+         "group": null,
+         "parent": null,
+         "order": 39.019,
+         "source": "guide",
+         "segments": ["developer", "clef"],
+         "file": "developer/clef.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/contributing",
+         "title": "Contributing",
+         "group": null,
+         "parent": null,
+         "order": 40.02,
+         "source": "guide",
+         "segments": ["developer", "contributing"],
+         "file": "developer/contributing.md"
+      },
+      {
+         "section": "Developer guide",
+         "path": "developer/agent-feedback",
+         "title": "Agent feedback (Agentation)",
+         "group": null,
+         "parent": null,
+         "order": 41.021,
+         "source": "guide",
+         "segments": ["developer", "agent-feedback"],
+         "file": "developer/agent-feedback.md"
+      },
+      {
+         "section": "Reference",
+         "path": "developer/reference/mcp-tools",
+         "title": "MCP tools",
+         "group": null,
+         "parent": null,
+         "order": 60.022,
+         "source": "generated",
+         "segments": ["developer", "reference", "mcp-tools"],
+         "file": "developer/reference/mcp-tools.md"
+      },
+      {
+         "section": "Reference",
+         "path": "developer/reference/api",
+         "title": "HTTP API",
+         "group": null,
+         "parent": null,
+         "order": 61.023,
+         "source": "generated",
+         "segments": ["developer", "reference", "api"],
+         "file": "developer/reference/api.md"
+      }
+   ],
+   "links": [
+      {
+         "section": "Project",
+         "title": "GitHub",
+         "href": "https://github.com/calycode/takhtabush"
+      },
+      {
+         "section": "Project",
+         "title": "Design specification",
+         "href": "https://github.com/calycode/takhtabush/blob/main/SPEC.md"
+      },
+      {
+         "section": "Project",
+         "title": "Contributing",
+         "href": "https://github.com/calycode/takhtabush/blob/main/CONTRIBUTING.md"
+      },
+      {
+         "section": "Project",
+         "title": "Security policy",
+         "href": "https://github.com/calycode/takhtabush/blob/main/SECURITY.md"
+      },
+      {
+         "section": "Project",
+         "title": "MIT license",
+         "href": "https://github.com/calycode/takhtabush/blob/main/LICENSE"
+      }
+   ]
+}

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <title>Takhtabush docs</title>
+      <meta
+         http-equiv="X-UA-Compatible"
+         content="IE=edge,chrome=1"
+      />
+      <meta
+         name="description"
+         content="Documentation for Takhtabush, a self-hosted flashcard app on one Cloudflare Worker."
+      />
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1.0, minimum-scale=1.0"
+      />
+      <link
+         rel="icon"
+         type="image/png"
+         href="./_media/favicon.png"
+      />
+      <link
+         rel="stylesheet"
+         href="//cdn.jsdelivr.net/npm/docsify@^5.0.0-rc/dist/themes/core.min.css"
+      />
+      <link
+         href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap"
+         rel="stylesheet"
+      />
+      <link
+         href="//cdn.jsdelivr.net/npm/docsify@^5.0.0-rc/dist/themes/addons/core-dark.min.css"
+         rel="stylesheet"
+      />
+      <link
+         href="./styles.css"
+         rel="stylesheet"
+      />
+      <link
+         href="./custom-styles.css"
+         rel="stylesheet"
+      />
+   </head>
+
+   <body class="loading sidebar-chevron-left sidebar-group-box sidebar-toggle-chevron">
+      <div class="fixed inset-0 w-full h-full pointer-events-none -z-10">
+         <div
+            id="mouse-highlight"
+            class="pointer-events-none absolute inset-0"
+            style="z-index: 10; mix-blend-mode: lighten; transition: opacity 0.3s; opacity: 0.45"
+         ></div>
+         <div class="absolute inset-0 bg-[#222326] opacity-85"></div>
+      </div>
+      <div id="app"></div>
+      <script>
+         window.$docsify = {
+            el: '#app',
+            name: 'Takhtabush Docs',
+            nameLink: '#/',
+            alias: {
+               '/': '#/',
+               '/.*/_sidebar.md': '/_sidebar.md',
+            },
+            repo: 'https://github.com/calycode/takhtabush',
+            autoHeader: true,
+            loadSidebar: true,
+            sidebarDisplayLevel: 2,
+            logo: '/_media/logo.png',
+            notFoundPage: true,
+            auto2top: true,
+            search: {
+               placeholder: 'Search docs…',
+               noData: 'No results.',
+            },
+            copyCode: {
+               buttonText: 'copy',
+            },
+            pagination: {
+               previousText: 'Previous',
+               nextText: 'Next',
+               crossChapter: true,
+               crossChapterText: true,
+            },
+            loadNavBar: false,
+            plugins: [
+               function (hook) {
+                  hook.doneEach(() => {
+                     const highlight = document.getElementById('mouse-highlight');
+                     if (!highlight) return;
+                     window.addEventListener('mousemove', (event) => {
+                        const x = (event.clientX / window.innerWidth) * 100;
+                        const y = (event.clientY / window.innerHeight) * 100;
+                        highlight.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(74,222,128,0.18) 0%, rgba(74,222,128,0.08) 16%, transparent 70%)`;
+                     });
+                  });
+               },
+            ],
+         };
+      </script>
+
+      <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code/dist/docsify-copy-code.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/docsify@^5.0.0-rc/dist/docsify.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/docsify@^5.0.0-rc/dist/plugins/search.min.js"></script>
+      <script src="https://unpkg.com/docsify-pagination/dist/docsify-pagination.min.js"></script>
+   </body>
+</html>

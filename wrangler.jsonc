@@ -1,0 +1,81 @@
+{
+   // Production config for Appflare repository installs, Cloudflare's Deploy to
+   // Cloudflare button, and `wrangler deploy`.
+   //
+   // D1 and R2 deliberately have no ids or bucket name: Appflare and Cloudflare
+   // provision them on install/deploy. A manual deploy can either let Wrangler
+   // provision them or add the real ids first.
+   //
+   // Local development uses `wrangler.dev.jsonc`.
+   "$schema": "node_modules/wrangler/config-schema.json",
+   "name": "takhtabush",
+   "main": "packages/api/src/index.ts",
+   "compatibility_date": "2026-07-29",
+   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+   "assets": {
+      "directory": "packages/webapp/dist/client",
+      "binding": "ASSETS",
+      "not_found_handling": "single-page-application",
+      // Worker-first for API/MCP/OAuth paths. Without this, the SPA fallback answers
+      // document navigations to `/mcp-apps/*` with index.html (SPEC §12.3).
+      "run_worker_first": [
+         "/api/*",
+         "/mcp",
+         "/mcp/*",
+         "/mcp-apps/*",
+         "/media/*",
+         "/oauth/*",
+         "/.well-known/*",
+      ],
+   },
+   "d1_databases": [
+      {
+         "binding": "DB",
+         "migrations_dir": "migrations",
+      },
+   ],
+   "r2_buckets": [
+      {
+         "binding": "MEDIA",
+      },
+   ],
+   // OAuth grants, tokens, and clients for the ChatGPT connector. The id is
+   // omitted so Cloudflare/Appflare provision the namespace on deploy.
+   "kv_namespaces": [
+      {
+         "binding": "OAUTH_KV",
+      },
+   ],
+   "ai": {
+      "binding": "AI",
+   },
+   // Cloudflare Email Service (SPEC §3.2). Leave EMAIL_FROM empty until a
+   // sending domain is onboarded; /setup works without email.
+   "send_email": [
+      {
+         "name": "EMAIL",
+      },
+   ],
+   "observability": {
+      "enabled": true,
+   },
+   // Periodic cleanup: prune expired auth artifacts and orphaned R2 media.
+   "triggers": {
+      "crons": ["0 3 * * *"],
+   },
+   "vars": {
+      // Empty means "use the request origin"; set this to pin a custom domain.
+      "APP_URL": "",
+      "ENVIRONMENT": "production",
+      "EMAIL_FROM": "",
+      // Leave empty to let the /setup email claim ownership.
+      "OWNER_EMAIL": "",
+      // Comma-separated extra addresses for a small trusted group.
+      "ALLOWED_EMAILS": "",
+      "AI_GATEWAY_URL": "",
+      "CLEF_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+   },
+   // Secrets are set by Appflare, the Cloudflare dashboard, or
+   // `wrangler secret put`: SESSION_SECRET, SETUP_TOKEN, and optionally
+   // OWNER_INVITE_TOKEN and AI_GATEWAY_TOKEN.
+}

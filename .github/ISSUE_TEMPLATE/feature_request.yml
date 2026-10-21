@@ -1,0 +1,46 @@
+name: Feature request
+description: Propose a capability or a change in behavior.
+title: '[feature] '
+labels: ['enhancement']
+body:
+   - type: textarea
+     id: problem
+     attributes:
+        label: What problem does this solve?
+        description: Describe the study workflow or operator problem, not only the UI.
+     validations:
+        required: true
+   - type: textarea
+     id: proposal
+     attributes:
+        label: Proposed behavior
+     validations:
+        required: true
+   - type: textarea
+     id: alternatives
+     attributes:
+        label: Alternatives considered
+   - type: dropdown
+     id: scope
+     attributes:
+        label: Which part of the project?
+        options:
+           - Webapp
+           - API / D1 / R2
+           - MCP / coding agents
+           - Study widget
+           - Scheduler / grading
+           - Deployment / operations
+           - Documentation
+           - Other
+     validations:
+        required: true
+   - type: checkboxes
+     id: checks
+     attributes:
+        label: Before submitting
+        options:
+           - label: I searched existing issues and discussions.
+             required: true
+           - label: This is not a security report.
+             required: true

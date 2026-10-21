@@ -1,0 +1,99 @@
+/**
+ * Markdown element styling shared by the read-only `<Markdown>` renderer and the
+ * contenteditable `MarkdownEditor` (both use the `.caly-markdown` scope).
+ */
+
+.caly-markdown {
+   line-height: 1.5;
+}
+
+.caly-markdown > * + * {
+   margin-top: 0.5rem;
+}
+
+.caly-markdown p {
+   margin: 0;
+}
+
+.caly-markdown h1 {
+   font-size: 1.35em;
+   font-weight: 600;
+   margin: 0;
+}
+
+.caly-markdown h2 {
+   font-size: 1.2em;
+   font-weight: 600;
+   margin: 0;
+}
+
+.caly-markdown h3 {
+   font-size: 1.05em;
+   font-weight: 600;
+   margin: 0;
+}
+
+.caly-markdown ul {
+   list-style: disc;
+   padding-left: 1.25rem;
+   margin: 0;
+}
+
+.caly-markdown ol {
+   list-style: decimal;
+   padding-left: 1.25rem;
+   margin: 0;
+}
+
+.caly-markdown li {
+   margin: 0.125rem 0;
+}
+
+.caly-markdown li > ul,
+.caly-markdown li > ol {
+   margin-top: 0.125rem;
+}
+
+.caly-markdown code {
+   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+   background: var(--muted);
+   padding: 0.1rem 0.3rem;
+   border-radius: 0.25rem;
+   font-size: 0.875em;
+}
+
+.caly-markdown pre {
+   background: var(--muted);
+   padding: 0.5rem 0.75rem;
+   border-radius: 0.375rem;
+   overflow-x: auto;
+   margin: 0;
+}
+
+.caly-markdown pre code {
+   background: none;
+   padding: 0;
+}
+
+.caly-markdown a {
+   color: var(--primary);
+   text-decoration: underline;
+   text-underline-offset: 2px;
+}
+
+.caly-markdown blockquote {
+   border-left: 3px solid var(--border);
+   padding-left: 0.75rem;
+   color: var(--muted-foreground);
+   margin: 0;
+}
+
+.caly-markdown hr {
+   border: 0;
+   border-top: 1px solid var(--border);
+   margin: 0;
+}
+
+.caly-markdown-editor:focus {
+   outline: none;
+}

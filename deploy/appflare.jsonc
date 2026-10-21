@@ -1,0 +1,91 @@
+{
+   // Draft catalog entry. Appflare reads this file from
+   // `apps/<slug>/appflare.jsonc` in the appflare/catalog repository, not from
+   // this repository. Before submitting:
+   //   1. publish this repository and fill `repo`, `authors` and `maintainers`;
+   //   2. replace the source sha with the full 40-character commit sha;
+   //   3. add a LICENSE and set `license` (or leave NONE and keep licenseNote);
+   //   4. confirm the repository has at least 50 GitHub stars.
+   "$schema": "https://appflare.github.io/catalog/schema/v1.json",
+   "slug": "flashcards",
+   "name": "Flashcards",
+   "summary": "Self-hosted Quizlet-style flashcards with spaced repetition, import/export, media, stats, and an MCP server for coding agents.",
+   "tagline": "Study your own flashcard decks with spaced repetition",
+   "features": [
+      "Create and organize decks with text, image, and audio cards",
+      "Study with flashcards, multiple choice, typed, cloze, and matching modes",
+      "Import CSV, TSV, or JSON decks and export your data",
+      "Track due cards, streaks, and deck statistics",
+      "Connect MCP clients with scoped API keys or OAuth",
+      "Render study sessions in compatible MCP Apps chat hosts",
+   ],
+   "alternativeTo": ["Quizlet"],
+   "repo": "calycode/takhtabush",
+   "license": "NONE",
+   "licenseNote": "The upstream repository does not declare a license yet.",
+   "categories": ["education"],
+   "authors": [{ "name": "REPLACE_WITH_AUTHOR" }],
+   "maintainers": ["REPLACE_WITH_GITHUB_USERNAME"],
+   "source": { "ref": "main", "sha": "REPLACE_WITH_40_CHARACTER_SHA" },
+   "install": {
+      "packageManager": "pnpm",
+      "wranglerConfig": "wrangler.jsonc",
+      "buildCommand": "pnpm build",
+      "health": { "path": "/api/v1/health" },
+   },
+   // D1, R2, the AI binding, the daily cron, and the D1 migrations fit the free
+   // plan. Email delivery to arbitrary recipients may need Workers Paid; the
+   // setup/recovery token keeps first-run setup working without email.
+   "plan": "free",
+   "requires": ["r2"],
+   "secrets": [
+      {
+         "name": "SESSION_SECRET",
+         "label": "Session secret",
+         "help": "Signs session, magic-link, and OAuth consent cookies (32+ characters). Changing it signs everyone out and clears ChatGPT approvals.",
+         "generate": "password",
+      },
+      {
+         "name": "SETUP_TOKEN",
+         "label": "Setup / recovery token",
+         "help": "Creates the owner account at /setup and recovers owner access later. Keep a copy.",
+         "generate": "password",
+      },
+      {
+         "name": "AI_GATEWAY_TOKEN",
+         "label": "AI Gateway token",
+         "help": "Optional token for Clef evaluations through AI Gateway. Without it the deterministic scheduler is used.",
+         "optional": true,
+      },
+   ],
+   "vars": [
+      {
+         "name": "OWNER_EMAIL",
+         "label": "Owner email",
+         "help": "The address that owns this deployment. Leave it empty to let the first email used at /setup claim ownership.",
+         "optional": true,
+      },
+      {
+         "name": "ALLOWED_EMAILS",
+         "label": "Allowed emails",
+         "help": "Additional addresses allowed to sign in, separated by commas. Leave empty for a strictly single-user deployment.",
+         "optional": true,
+      },
+      {
+         "name": "EMAIL_FROM",
+         "label": "Sender address",
+         "help": "A sender on a domain onboarded to Cloudflare Email Service. Leave empty to use the setup/recovery token only.",
+         "optional": true,
+      },
+   ],
+   "postInstall": [
+      {
+         "type": "markdown",
+         "content": "Open {{appUrl}}/setup and use the setup / recovery token from this app's settings to create the owner account.",
+      },
+      {
+         "type": "markdown",
+         "content": "Open {{appUrl}}/mcp to create an API key for Claude Code, Codex, or another MCP client.",
+      },
+   ],
+}

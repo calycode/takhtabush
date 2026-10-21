@@ -1,0 +1,21 @@
+{
+   "$schema": "https://ui.shadcn.com/schema.json",
+   "style": "base-mira",
+   "rsc": false,
+   "tsx": true,
+   "tailwind": {
+      "config": "",
+      "css": "./src/styles/globals.css",
+      "baseColor": "neutral",
+      "cssVariables": true,
+      "prefix": ""
+   },
+   "iconLibrary": "lucide",
+   "aliases": {
+      "components": "#components",
+      "ui": "@caly/ui/components",
+      "lib": "#lib",
+      "hooks": "@caly/ui/hooks",
+      "utils": "@caly/ui/lib/utils"
+   }
+}

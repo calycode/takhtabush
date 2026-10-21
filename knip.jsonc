@@ -1,0 +1,44 @@
+{
+   "$schema": "https://unpkg.com/knip@5/schema.json",
+   "workspaces": {
+      ".": {
+         "entry": ["scripts/docs/client.ts"],
+      },
+      "packages/shared": {
+         "project": ["src/**/*.ts"],
+      },
+      "packages/worker-kit": {
+         "project": ["src/**/*.ts"],
+      },
+      "packages/ui": {
+         "project": ["src/**/*.{ts,tsx}"],
+      },
+      "packages/api": {
+         "project": ["src/**/*.ts"],
+      },
+      "packages/mcp": {
+         "project": ["src/**/*.ts"],
+      },
+      "packages/study-widget": {
+         "project": ["src/**/*.{ts,tsx}"],
+      },
+      "packages/webapp": {
+         "project": ["src/**/*.{ts,tsx}"],
+      },
+   },
+   "ignore": ["vitest.config.ts"],
+   "ignoreDependencies": [
+      "react",
+      "shadcn",
+      "tw-animate-css",
+      "tailwindcss",
+      "@fontsource-variable/roboto",
+      "@fontsource-variable/noto-sans",
+   ],
+   "rules": {
+      "exports": "off",
+      "types": "off",
+      "enumMembers": "off",
+      "duplicates": "off",
+   },
+}

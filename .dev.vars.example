@@ -1,0 +1,23 @@
+# Secrets for a deployed Worker. Appflare repository installs read this file to
+# decide which secrets to ask for. Cloudflare's Deploy button and a manual deploy
+# set the same names in the dashboard or with `wrangler secret put`. Copy it to
+# `.dev.vars` only when you want to override the local defaults in
+# `wrangler.dev.jsonc`.
+#
+# Never commit real values (see SPEC §15.2).
+
+# Required: 32+ random bytes, used to hash session and magic-link tokens and to
+# sign OAuth consent cookies.
+SESSION_SECRET=
+
+# Required: enables /setup. It creates the owner account before email is
+# configured and recovers owner access later. Generate a long random value.
+SETUP_TOKEN=
+
+# Optional: when set, every /auth/magic-link request must also carry a matching
+# invite value. Leave it unset to rely on single tenancy alone.
+OWNER_INVITE_TOKEN=
+
+# Optional: token for Clef evaluations through AI Gateway. Without it the app
+# falls back to the deterministic scheduler.
+AI_GATEWAY_TOKEN=

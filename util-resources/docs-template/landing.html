@@ -1,0 +1,339 @@
+<!doctype html>
+<html
+   lang="en"
+   data-theme="dark"
+   data-manifest-version="%%MANIFEST_VERSION%%"
+>
+   <head>
+      <meta charset="UTF-8" />
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1.0"
+      />
+      <title>Takhtabush — a private flashcard workspace</title>
+      <meta
+         name="description"
+         content="A self-hosted flashcard app for learners and builders: decks, six study modes, a versioned scheduler, and an MCP endpoint on one Cloudflare Worker."
+      />
+      <link
+         rel="canonical"
+         href="%%CANONICAL%%"
+      />
+      <link
+         rel="alternate"
+         type="text/markdown"
+         href="%%BASE%%/docs/index.md"
+      />
+      <meta
+         property="og:type"
+         content="website"
+      />
+      <meta
+         property="og:title"
+         content="Takhtabush — a private flashcard workspace"
+      />
+      <meta
+         property="og:description"
+         content="A self-hosted flashcard app for learners and builders: decks, six study modes, a versioned scheduler, and an MCP endpoint on one Cloudflare Worker."
+      />
+      <meta
+         property="og:url"
+         content="%%CANONICAL%%"
+      />
+      <link
+         rel="icon"
+         type="image/png"
+         href="%%BASE%%/assets/media/favicon.png"
+      />
+      <link
+         href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+         rel="stylesheet"
+      />
+      <link
+         href="%%BASE%%/assets/docs.css"
+         rel="stylesheet"
+      />
+   </head>
+   <body
+      class="d-body d-body--landing"
+      data-manifest-version="%%MANIFEST_VERSION%%"
+   >
+      <header class="d-header d-header--landing">
+         <a
+            class="d-brand"
+            href="%%BASE%%/"
+         >
+            <img
+               src="%%BASE%%/assets/media/logo.png"
+               alt=""
+               width="28"
+               height="28"
+            />
+            <span class="d-brand__name">Takhtabush</span>
+         </a>
+         <div class="d-header__spacer"></div>
+         <a
+            class="d-header__link"
+            href="%%BASE%%/docs/user/"
+            >User guide</a
+         >
+         <a
+            class="d-header__link"
+            href="%%BASE%%/docs/developer/"
+            >Developer guide</a
+         >
+         <a
+            class="d-header__link"
+            href="https://github.com/calycode/takhtabush"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+         >
+         <button
+            class="d-theme"
+            type="button"
+            data-theme-toggle
+            aria-label="Toggle color theme"
+         >
+            <span data-theme-icon>◐</span>
+         </button>
+      </header>
+
+      <main class="d-landing">
+         <section class="d-hero d-hero--landing">
+            <p class="d-hero__eyebrow">Takhtabush · v%%VERSION%%</p>
+            <h1 class="d-hero__title">A quiet place to learn.</h1>
+            <p class="d-hero__lede">
+               Self-hosted flashcards for the people who use them, and a small, auditable Cloudflare
+               Worker for the people who run them. Decks, six study modes, a deterministic
+               scheduler, and an MCP endpoint — without a second service.
+            </p>
+            <div class="d-hero__actions">
+               <a
+                  class="d-btn d-btn--primary"
+                  href="%%BASE%%/docs/user/"
+                  >Open the user guide</a
+               >
+               <a
+                  class="d-btn"
+                  href="%%BASE%%/docs/developer/"
+                  >Self-host it</a
+               >
+            </div>
+            <div
+               class="d-install"
+               role="group"
+               aria-label="Quick start command"
+            >
+               <div class="d-install__dots"><span></span><span></span><span></span></div>
+               <code
+                  >git clone https://github.com/calycode/takhtabush.git<br />cd takhtabush
+                  &amp;&amp; pnpm install &amp;&amp; pnpm db:migrate:local &amp;&amp; pnpm dev</code
+               >
+               <button
+                  class="d-install__copy"
+                  type="button"
+                  data-copy-install
+                  aria-label="Copy quick start command"
+               >
+                  copy
+               </button>
+            </div>
+            <div class="d-hero__shot">
+               <img
+                  src="%%BASE%%/assets/media/screenshots/dashboard.png"
+                  alt="Takhtabush dashboard with decks and study sessions"
+               />
+            </div>
+         </section>
+
+         <section
+            class="d-paths"
+            aria-label="Choose your path"
+         >
+            <a
+               class="d-path"
+               href="%%BASE%%/docs/user/"
+            >
+               <span class="d-path__eyebrow">For learners</span>
+               <h2 class="d-path__title">Study your decks</h2>
+               <p class="d-path__body">
+                  Sign in, build or import decks, study with six modes, and read your progress. No
+                  setup, no infrastructure, no developer vocabulary.
+               </p>
+               <span class="d-path__cta">Open the user guide →</span>
+            </a>
+            <a
+               class="d-path"
+               href="%%BASE%%/docs/developer/"
+            >
+               <span class="d-path__eyebrow">For builders</span>
+               <h2 class="d-path__title">Self-host or contribute</h2>
+               <p class="d-path__body">
+                  Deploy one Worker, configure D1 and R2, run the scheduler, connect agents over
+                  MCP, and audit the system. Architecture and reference included.
+               </p>
+               <span class="d-path__cta">Open the developer guide →</span>
+            </a>
+         </section>
+
+         <section
+            class="d-feature-group"
+            aria-label="For learners"
+         >
+            <div class="d-feature-group__head">
+               <span class="d-path__eyebrow">For learners</span>
+               <h2>Built around the study session</h2>
+               <p>Everything in the app points at one thing: getting the next card right.</p>
+            </div>
+            <div class="d-features">
+               <article class="d-feature">
+                  <h3>Decks that stay readable</h3>
+                  <p>
+                     Markdown definitions, images, audio, tags, folders, import, and export. The
+                     deck table stays scannable.
+                  </p>
+               </article>
+               <article class="d-feature">
+                  <h3>Six study modes</h3>
+                  <p>
+                     Flashcards, multiple choice, typed, cloze, two matching layouts, and mixed. The
+                     launcher only offers what the deck supports.
+                  </p>
+               </article>
+               <article class="d-feature">
+                  <h3>Progress you can act on</h3>
+                  <p>
+                     Accuracy, due counts, a two-week schedule, and the weakest cards first. The
+                     stats page tells you what to study next.
+                  </p>
+               </article>
+            </div>
+         </section>
+
+         <section
+            class="d-feature-group"
+            aria-label="For builders"
+         >
+            <div class="d-feature-group__head">
+               <span class="d-path__eyebrow">For builders</span>
+               <h2>One Worker, no hidden service</h2>
+               <p>
+                  The SPA, API, media proxy, MCP endpoint, OAuth provider, and cron job deploy
+                  together.
+               </p>
+            </div>
+            <div class="d-features">
+               <article class="d-feature">
+                  <h3>A scheduler you can audit</h3>
+                  <p>
+                     SM-2-inspired, deterministic, and versioned. Review events are append-only;
+                     learning state is derived and rebuildable.
+                  </p>
+               </article>
+               <article class="d-feature">
+                  <h3>MCP for agents</h3>
+                  <p>
+                     Curated tools, scoped API keys, OAuth for ChatGPT, and an audit row for every
+                     write. No arbitrary code execution.
+                  </p>
+               </article>
+               <article class="d-feature">
+                  <h3>Single tenant by default</h3>
+                  <p>
+                     The first account is the owner. Allow a small group with an allowlist, or pin
+                     the owner address from the start.
+                  </p>
+               </article>
+            </div>
+         </section>
+
+         <section
+            class="d-screens"
+            aria-label="Screenshots"
+         >
+            <div class="d-screens__head">
+               <h2>See it before you deploy it</h2>
+               <p>
+                  Light and dark themes, keyboard-first study, and a dashboard that tells you what
+                  is due.
+               </p>
+            </div>
+            <div class="d-screens__grid">
+               <figure class="d-screen">
+                  <img
+                     src="%%BASE%%/assets/media/screenshots/deck.png"
+                     alt="Deck view with Markdown definitions, tags, and card types"
+                  />
+                  <figcaption>
+                     Deck view — Markdown definitions, tags, and type-aware cards.
+                  </figcaption>
+               </figure>
+               <figure class="d-screen">
+                  <img
+                     src="%%BASE%%/assets/media/screenshots/study.png"
+                     alt="A flashcard study session with the answer revealed"
+                  />
+                  <figcaption>
+                     Study — reveal, grade, repeat. Keys 1–4 grade; Space reveals.
+                  </figcaption>
+               </figure>
+               <figure class="d-screen">
+                  <img
+                     src="%%BASE%%/assets/media/screenshots/stats.png"
+                     alt="Study statistics with accuracy, due counts, and card accuracy"
+                  />
+                  <figcaption>
+                     Statistics — accuracy, due counts, schedule, and the weakest cards.
+                  </figcaption>
+               </figure>
+            </div>
+         </section>
+
+         <section class="d-cta">
+            <h2>Start with the guide that fits</h2>
+            <p>
+               Both paths lead to the same app. Pick the one that matches what you are doing today.
+            </p>
+            <div class="d-hero__actions">
+               <a
+                  class="d-btn d-btn--primary"
+                  href="%%BASE%%/docs/user/"
+                  >I'm here to study</a
+               >
+               <a
+                  class="d-btn"
+                  href="%%BASE%%/docs/developer/"
+                  >I'm here to self-host</a
+               >
+            </div>
+         </section>
+      </main>
+
+      <footer class="d-footer d-footer--landing">
+         <span
+            >MIT licensed · built by
+            <a
+               href="https://github.com/calycode"
+               target="_blank"
+               rel="noopener noreferrer"
+               >calycode</a
+            >.</span
+         >
+         <span
+            >Generated %%GENERATED_AT%% · <a href="%%BASE%%/docs/">docs</a> ·
+            <a
+               href="https://github.com/calycode/takhtabush"
+               target="_blank"
+               rel="noopener noreferrer"
+               >GitHub</a
+            ></span
+         >
+      </footer>
+
+      <script
+         src="%%BASE%%/assets/docs.js"
+         defer
+      ></script>
+   </body>
+</html>

@@ -1,0 +1,153 @@
+body {
+   font-family: 'Noto Sans', ui-sans-serif, system-ui;
+}
+
+:root {
+   --theme-color: #45f3ff;
+   --content-max-width: 104ch;
+   --sidebar-toggle-alignment: start;
+   /* start center end */
+   --sidebar-toggle-bg: var(--color-mono-2);
+   --sidebar-toggle-bg-hover: var(--button-bg);
+   --sidebar-toggle-color: var(--color-mono-4);
+   --sidebar-toggle-color-hover: var(--button-color);
+   --sidebar-toggle-height: 42px;
+   --sidebar-toggle-margin-block: 24px;
+   --sidebar-toggle-width: 32px;
+
+   /* termynal style variables */
+   --termynal-bg: var(--code-bg);
+   --termynal-color: var(--code-color);
+   --termynal-color-subtle: var(--color-mono-5);
+   --termynal-highlight-color: var(--theme-color);
+   --termynal-cursor: #00ff00;
+   --termynal-font: var(--font-family-mono);
+   --termynal-font-size: var(--font-size-m);
+   --termynal-border-radius: var(--border-radius);
+}
+
+/* Dark mode toggle */
+#dark-mode-toggle {
+   display: block;
+   padding: 4px 8px;
+   border-radius: 8px;
+   border: none;
+   background: var(--color-mono-2);
+   color: var(--theme-color);
+   font-size: 1.1em;
+   cursor: pointer;
+   transition: background 0.2s;
+}
+
+#dark-mode-toggle:hover {
+   background: var(--color-mono-4);
+   color: var(--theme-color);
+}
+
+/* Terminaly plugin styles customized to work with light and dark mode both */
+[data-termynal] {
+   width: 100%;
+   max-width: 100%;
+   background: var(--termynal-bg);
+   color: var(--termynal-color);
+   font-size: var(--termynal-font-size);
+   font-family: var(--termynal-font);
+   border-radius: var(--termynal-border-radius);
+   padding: 38px 15px 10px;
+   position: relative;
+   -webkit-box-sizing: border-box;
+   box-sizing: border-box;
+   z-index: 1;
+}
+
+/* termynal window-control-icons */
+[data-termynal]:before {
+   content: '';
+   position: absolute;
+   top: 15px;
+   left: 15px;
+   display: inline-block;
+   width: 15px;
+   height: 15px;
+   border-radius: 50%;
+   /* A little hack to display the window buttons in one pseudo element. */
+   background: #d9515d;
+   -webkit-box-shadow:
+      25px 0 0 #f4c025,
+      50px 0 0 #3ec930;
+   box-shadow:
+      25px 0 0 #f4c025,
+      50px 0 0 #3ec930;
+}
+
+/* termynal label */
+[data-termynal]:after {
+   content: 'bash';
+   position: absolute;
+   color: var(--termynal-color-subtle);
+   top: 5px;
+   left: 0;
+   width: 100%;
+   text-align: center;
+}
+
+a[data-terminal-control] {
+   color: var(--termynal-highlight-color);
+   position: absolute;
+   top: 5px;
+   right: 15px;
+   z-index: 2;
+   text-decoration: none;
+}
+
+a[data-terminal-control]:hover {
+   color: var(--termynal-highlight-color);
+   font-weight: 700;
+}
+
+[data-ty] {
+   display: block;
+}
+
+[data-ty]:before {
+   /* Set up defaults and ensure empty lines are displayed. */
+   content: '';
+   display: inline-block;
+   vertical-align: middle;
+}
+
+[data-ty='input']:before,
+[data-ty-prompt]:before {
+   margin-right: 0.75em;
+   color: var(--termynal-color);
+}
+
+[data-ty='input']:before {
+   content: '$';
+}
+
+[data-ty][data-ty-prompt]:before {
+   content: attr(data-ty-prompt);
+}
+
+[data-ty-cursor]:after {
+   content: attr(data-ty-cursor);
+   font-family: var(--termynal-font-family);
+   margin-left: 0.5em;
+   -webkit-animation: blink 1s infinite;
+   animation: blink 1s infinite;
+}
+
+/* Cursor animation */
+
+@-webkit-keyframes blink {
+   50% {
+      opacity: 0;
+   }
+}
+
+@keyframes blink {
+   50% {
+      opacity: 0;
+   }
+}
