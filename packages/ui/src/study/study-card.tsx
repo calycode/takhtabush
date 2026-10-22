@@ -144,7 +144,7 @@ export function StudyCard({ card, mode, pool, busy, onAnswered }: StudyCardProps
 
             {(interaction === 'typed' || interaction === 'cloze') && (
                <form
-                  className='flex w-full max-w-md flex-col items-center gap-2'
+                  className='flex w-full max-w-md min-w-0 flex-col items-center gap-2'
                   onSubmit={(event) => {
                      event.preventDefault();
                      if (result) return;
@@ -172,7 +172,7 @@ export function StudyCard({ card, mode, pool, busy, onAnswered }: StudyCardProps
                      </Button>
                   )}
                   {result === 'incorrect' && (
-                     <p className='text-sm'>
+                     <p className='max-w-full text-sm wrap-anywhere'>
                         Correct: <span className='font-medium'>{answerText}</span>
                      </p>
                   )}

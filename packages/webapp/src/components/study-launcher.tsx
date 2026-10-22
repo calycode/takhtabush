@@ -196,7 +196,7 @@ export function StudyLauncher({
          onOpenChange={setOpen}
       >
          <DialogTrigger render={<Button disabled={triggerDisabled} />}>Study</DialogTrigger>
-         <DialogContent className='sm:max-w-lg'>
+         <DialogContent className='max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain sm:max-w-lg'>
             <DialogHeader>
                <DialogTitle>Start a study session</DialogTitle>
                <DialogDescription>
