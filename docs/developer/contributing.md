@@ -34,6 +34,9 @@ pnpm docs:build
   Never add `react` or `react-dom` as runtime dependencies.
 - Generate shadcn primitives into `packages/ui`, never into the webapp.
 - Bump `SCHEDULER_VERSION` when the scheduler math changes.
+- Add a changeset with `pnpm changeset` for user-visible changes. All `@caly/*`
+  packages share one fixed version and are never published to npm; do not edit
+  versions or generated changelogs by hand.
 - A new MCP tool touches the name, schema, scope map, definitions, services
   interface, API binding, and dispatch switch. Update the scope tests too.
 - After editing `packages/study-widget/src`, run
