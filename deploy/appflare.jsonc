@@ -2,13 +2,12 @@
    // Draft catalog entry. Appflare reads this file from
    // `apps/<slug>/appflare.jsonc` in the appflare/catalog repository, not from
    // this repository. Before submitting:
-   //   1. publish this repository and fill `repo`, `authors` and `maintainers`;
-   //   2. replace the source sha with the full 40-character commit sha;
-   //   3. add a LICENSE and set `license` (or leave NONE and keep licenseNote);
-   //   4. confirm the repository has at least 50 GitHub stars.
+   //   1. replace `maintainers` with the GitHub username(s) of the packagers;
+   //   2. refresh `source.sha` after the final application commit;
+   //   3. confirm the repository has at least 50 GitHub stars.
    "$schema": "https://appflare.github.io/catalog/schema/v1.json",
-   "slug": "flashcards",
-   "name": "Flashcards",
+   "slug": "takhtabush",
+   "name": "Takhtabush",
    "summary": "Self-hosted Quizlet-style flashcards with spaced repetition, import/export, media, stats, and an MCP server for coding agents.",
    "tagline": "Study your own flashcard decks with spaced repetition",
    "features": [
@@ -21,12 +20,11 @@
    ],
    "alternativeTo": ["Quizlet"],
    "repo": "calycode/takhtabush",
-   "license": "NONE",
-   "licenseNote": "The upstream repository does not declare a license yet.",
+   "license": "MIT",
    "categories": ["education"],
-   "authors": [{ "name": "REPLACE_WITH_AUTHOR" }],
-   "maintainers": ["REPLACE_WITH_GITHUB_USERNAME"],
-   "source": { "ref": "main", "sha": "REPLACE_WITH_40_CHARACTER_SHA" },
+   "authors": [{ "name": "Mihály Tóth", "github": "MihalyToth20" }],
+   "maintainers": ["MihalyToth20"],
+   "source": { "ref": "main", "sha": "27cceb0bc790773bb44377e0ff6ad19cda486fc3" },
    "install": {
       "packageManager": "pnpm",
       "wranglerConfig": "wrangler.jsonc",
@@ -37,7 +35,7 @@
    // plan. Email delivery to arbitrary recipients may need Workers Paid; the
    // setup/recovery token keeps first-run setup working without email.
    "plan": "free",
-   "requires": ["r2"],
+   "requires": ["r2", "workers-ai"],
    "secrets": [
       {
          "name": "SESSION_SECRET",
@@ -50,6 +48,12 @@
          "label": "Setup / recovery token",
          "help": "Creates the owner account at /setup and recovers owner access later. Keep a copy.",
          "generate": "password",
+      },
+      {
+         "name": "OWNER_INVITE_TOKEN",
+         "label": "Owner invite token",
+         "help": "Optional extra gate on magic-link requests. Leave empty unless the deployment should require an invite value.",
+         "optional": true,
       },
       {
          "name": "AI_GATEWAY_TOKEN",
