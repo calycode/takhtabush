@@ -63,6 +63,26 @@ Read [`CONTEXT.md`](./CONTEXT.md) for the domain language and
    cheapest place to start; route tests are welcome when behavior crosses HTTP.
 5. Update the contract and the consumers together. A schema change without the
    webapp change is an incomplete change.
+6. Add a changeset for user-visible changes with `pnpm changeset` and commit the
+   generated `.changeset/*.md` file. See [Versioning and changelogs](#versioning-and-changelogs).
+
+### Versioning and changelogs
+
+Changesets tracks versions and changelogs. All `@caly/*` packages share one
+fixed version, so a single changeset bumps the whole product together.
+
+```bash
+pnpm changeset        # record a change and choose patch/minor/major
+pnpm changeset:status # inspect pending changesets
+pnpm version-packages # apply changesets, bump versions, update CHANGELOG.md
+```
+
+- Use `patch` for fixes, `minor` for features, and `major` for breaking changes.
+- Tooling-only, test-only, and docs-only changes do not need a changeset.
+- Do not edit package versions or generated `CHANGELOG.md` files by hand.
+- The packages are private and are never published to npm. Do not run
+  `changeset publish`.
+- The configuration lives in [`.changeset/config.json`](./.changeset/config.json).
 
 ### Database changes
 
@@ -108,8 +128,8 @@ Worker will keep serving the old bundle.
 
 Use conventional commit prefixes (`feat:`, `fix:`, `docs:`, `refactor:`,
 `test:`, `chore:`). Keep a pull request focused. Describe the behavior change,
-the tests you ran, and any migration or deployment note. Fill in the pull
-request template.
+the tests you ran, and any migration or deployment note. Include the changeset
+for user-visible changes and fill in the pull request template.
 
 ## Licensing
 
