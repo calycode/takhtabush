@@ -55,6 +55,16 @@
 - Suspended cards (`cards.status = 'suspended'`) are excluded from automatic sessions and due/new/weak queues.
 - Study sessions are listable/resumable; exiting early abandons the session.
 
+## Versioning and changelog
+
+- Every user-visible change ships with a changeset. Run `pnpm changeset`, choose the affected package(s) and bump type, and commit the generated `.changeset/*.md` file with the change. Tooling-only, test-only, and docs-only changes do not need one.
+- Agents can skip the interactive prompt with `pnpm changeset --patch @caly/api --message "Short summary"` (use `--minor` or `--major` for other bump types; pass comma-separated packages if needed).
+- All `@caly/*` packages are one fixed changeset group. A single changeset bumps the whole product to the same version; never hand-edit package versions.
+- `pnpm version-packages` (`changeset version`) consumes pending changesets and writes each package's `CHANGELOG.md`. Do not edit generated changelogs or version fields by hand.
+- Packages are private and are never published to npm. Never run `changeset publish`.
+- Bump types: `patch` for fixes, `minor` for features, `major` for breaking changes. Pre-1.0 releases still use these three types.
+- Inspect pending work with `pnpm changeset:status` (exit code 1 means changed packages are missing a changeset). The config lives in `.changeset/config.json`.
+
 ## AI / Clef rules
 
 - Only `packages/api/src/services/ai/*` calls AI Gateway or Workers AI.

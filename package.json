@@ -31,6 +31,9 @@
       "lint": "turbo run lint",
       "check-types": "turbo run check-types",
       "test": "turbo run test",
+      "changeset": "changeset",
+      "changeset:status": "changeset status --verbose",
+      "version-packages": "changeset version",
       "knip": "knip",
       "format": "prettier --write .",
       "format:check": "prettier --check .",
@@ -45,6 +48,7 @@
       "prepare": "husky"
    },
    "devDependencies": {
+      "@changesets/cli": "^3.0.3",
       "@eslint/js": "^9.39.4",
       "esbuild": "^0.28.2",
       "eslint": "^9.39.4",

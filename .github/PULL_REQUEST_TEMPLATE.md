@@ -32,6 +32,7 @@
 <!-- Migrations, scheduler version bumps, MCP scope changes, or deployment steps. -->
 
 - [ ] I added or updated tests at the seam I changed.
+- [ ] I added a changeset (`pnpm changeset`) if this change is user-visible.
 - [ ] I did not include secrets, tokens, or personal data.
 - [ ] If the scheduler math changed, I bumped `SCHEDULER_VERSION`.
 - [ ] If I changed the MCP widget, I rebuilt `compiled/v1.html.ts`.

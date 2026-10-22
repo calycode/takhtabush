@@ -170,6 +170,7 @@ packages/
 - Generate shadcn components into `packages/ui`, never into the webapp.
 - `preact-iso` has **no `Link` export** — use plain `<a>` elements.
 - Validate all input with `@caly/shared` Zod schemas; keep handlers thin.
+- Every user-visible change needs a changeset (`pnpm changeset`); all `@caly/*` packages share one fixed version.
 
 ## Documentation
 
