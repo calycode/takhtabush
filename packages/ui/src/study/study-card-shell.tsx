@@ -37,28 +37,31 @@ export function StudyCardShell({
    children,
 }: StudyCardShellProps) {
    return (
-      <CardContent className='flex min-h-56 flex-col items-center justify-center gap-5 py-10 text-center'>
+      <CardContent className='flex min-h-56 min-w-0 flex-col items-center justify-center gap-5 px-4 py-6 text-center sm:py-10'>
          {showType && type && type !== 'term_definition' && <Badge variant='outline'>{type}</Badge>}
 
          {imageUrl && (
             <img
                src={imageUrl}
                alt='Card'
-               className='max-h-48 rounded-md border object-contain'
+               className='max-h-48 max-w-full rounded-md border object-contain'
             />
          )}
          {audioUrl && (
             <audio
                controls
                src={audioUrl}
+               className='max-w-full'
             />
          )}
 
-         <div className='flex flex-col items-center gap-1'>
+         <div className='flex w-full min-w-0 flex-col items-center gap-1'>
             <span className='text-[0.625rem] tracking-wide text-muted-foreground uppercase'>
                Prompt
             </span>
-            <p className='text-xl font-medium text-balance'>{prompt}</p>
+            <p className='max-w-full text-lg font-medium text-balance wrap-anywhere sm:text-xl'>
+               {prompt}
+            </p>
          </div>
 
          {action}
@@ -66,17 +69,17 @@ export function StudyCardShell({
          {children}
 
          {revealed && (
-            <div className='flex w-full flex-col items-center gap-1 border-t pt-4'>
+            <div className='flex w-full min-w-0 flex-col items-center gap-1 border-t pt-4'>
                <span className='text-[0.625rem] tracking-wide text-muted-foreground uppercase'>
                   Answer
                </span>
                {answer ? (
                   <Markdown
                      source={answer}
-                     className='text-center text-xl font-medium text-balance'
+                     className='w-full min-w-0 text-center text-lg font-medium text-balance wrap-anywhere sm:text-xl'
                   />
                ) : (
-                  <p className='text-xl font-medium text-balance'>—</p>
+                  <p className='text-lg font-medium text-balance wrap-anywhere sm:text-xl'>—</p>
                )}
             </div>
          )}

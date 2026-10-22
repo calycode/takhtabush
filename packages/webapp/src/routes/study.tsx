@@ -148,7 +148,7 @@ export function StudySession({ sessionId }: { sessionId?: string }) {
          <section className='mx-auto flex max-w-lg flex-col items-center gap-4 text-center'>
             <h1 className='font-heading text-2xl font-medium'>Session complete</h1>
             <p className='text-sm text-muted-foreground'>You reviewed {total} cards.</p>
-            <div className='flex gap-2'>
+            <div className='flex flex-wrap justify-center gap-2'>
                <a
                   href={`/decks/${session.deckId}`}
                   className={buttonVariants()}
@@ -197,9 +197,9 @@ export function StudySession({ sessionId }: { sessionId?: string }) {
         : '';
 
    return (
-      <section className='mx-auto flex max-w-2xl flex-col gap-4'>
-         <div className='flex items-center justify-between gap-3'>
-            <div className='flex items-center gap-2'>
+      <section className='mx-auto flex w-full max-w-2xl flex-col gap-4'>
+         <div className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2'>
+            <div className='flex min-w-0 flex-wrap items-center gap-2'>
                <Badge variant='outline'>{session.mode}</Badge>
                {reviewed.size > 0 && <Badge variant='secondary'>resumed</Badge>}
                {session.mode === 'matching' && (
@@ -217,16 +217,18 @@ export function StudySession({ sessionId }: { sessionId?: string }) {
                   </div>
                )}
             </div>
-            <span className='text-xs text-muted-foreground'>
-               {answered} / {total}
-            </span>
-            <Button
-               variant='ghost'
-               size='sm'
-               onClick={() => setExitOpen(true)}
-            >
-               Exit
-            </Button>
+            <div className='ml-auto flex items-center gap-2'>
+               <span className='text-xs whitespace-nowrap text-muted-foreground'>
+                  {answered} / {total}
+               </span>
+               <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={() => setExitOpen(true)}
+               >
+                  Exit
+               </Button>
+            </div>
          </div>
          <Progress
             value={answered}

@@ -22,12 +22,13 @@ export function GradeBar({
    disabled?: boolean;
 }) {
    return (
-      <div className='grid grid-cols-4 gap-2 px-4 pb-4'>
+      <div className='grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-4'>
          {STUDY_GRADES.map((item) => (
             <Button
                key={item.response}
                variant={item.response === 'again' ? 'destructive' : 'outline'}
                disabled={disabled}
+               className='max-sm:h-11'
                onClick={() => onGrade(item.response)}
             >
                {item.label}

@@ -68,8 +68,8 @@ export function MatchingPairs({
 
    return (
       <UICard>
-         <CardContent className='grid grid-cols-2 gap-3 py-6'>
-            <div className='flex flex-col gap-2'>
+         <CardContent className='grid grid-cols-2 gap-2 py-6 sm:gap-3'>
+            <div className='flex min-w-0 flex-col gap-2'>
                {cards.map((card) => {
                   const done = matched.includes(card.id);
                   return (
@@ -77,7 +77,10 @@ export function MatchingPairs({
                         key={card.id}
                         variant={selected === card.id ? 'default' : 'outline'}
                         disabled={done || busy}
-                        className={cn('h-auto justify-start py-2 text-left', done && 'opacity-50')}
+                        className={cn(
+                           'h-auto min-h-11 min-w-0 justify-start whitespace-normal px-2 py-2 text-left wrap-anywhere sm:px-3',
+                           done && 'opacity-50',
+                        )}
                         onClick={() => selectLeft(card.id)}
                      >
                         {card.front}
@@ -85,7 +88,7 @@ export function MatchingPairs({
                   );
                })}
             </div>
-            <div className='flex flex-col gap-2'>
+            <div className='flex min-w-0 flex-col gap-2'>
                {rightItems.map((item) => {
                   const done = matched.includes(item.id);
                   return (
@@ -93,7 +96,10 @@ export function MatchingPairs({
                         key={item.id}
                         variant={wrong === item.id ? 'destructive' : 'outline'}
                         disabled={done || busy}
-                        className={cn('h-auto justify-start py-2 text-left', done && 'opacity-50')}
+                        className={cn(
+                           'h-auto min-h-11 min-w-0 justify-start whitespace-normal px-2 py-2 text-left wrap-anywhere sm:px-3',
+                           done && 'opacity-50',
+                        )}
                         onClick={() => void tryMatch(item.id)}
                      >
                         {item.label}
