@@ -114,6 +114,8 @@ export async function importIntoDeck(
             const patch = updates.get(cardId)!;
             return {
                cardId,
+               ownerId: userId,
+               deckId,
                authorId: userId,
                snapshot: snapshots.get(cardId) ?? {},
                patch: { back: patch.back ?? null, tags: patch.tags, status: 'active' as const },

@@ -27,6 +27,7 @@ import {
 import { detachDecksFromCollection, updateDeck } from '../../packages/api/src/repositories/decks';
 import { importIntoDeck } from '../../packages/api/src/services/import-service';
 import { computeDeckStats } from '../../packages/api/src/services/stats-service';
+import { listTags } from '../../packages/api/src/services/tag-service';
 import {
    getSessionDetail,
    recordReview,
@@ -108,6 +109,19 @@ class SqliteD1 {
    }
 }
 
+/** Minimal KV double: enough for the cache service’s get/put contract. */
+class MemoryKv {
+   private readonly values = new Map<string, string>();
+
+   async get(key: string): Promise<string | null> {
+      return this.values.get(key) ?? null;
+   }
+
+   async put(key: string, value: string): Promise<void> {
+      this.values.set(key, value);
+   }
+}
+
 function applyMigrations(db: DatabaseSync) {
    const dir = path.join(ROOT, 'migrations');
    for (const file of readdirSync(dir)
@@ -170,6 +184,18 @@ function seed(db: DatabaseSync) {
 
    // An empty deck is the realistic target for the import scenario.
    deck.run('deck_cost_empty', OWNER, 'Empty deck', null, iso(), iso());
+
+   // Seed the derived tag index exactly like migration 0009's backfill; the
+   // app write paths maintain it afterwards.
+   db.exec(`
+      INSERT OR IGNORE INTO card_tags (card_id, owner_id, deck_id, tag)
+      SELECT c.id, c.owner_id, c.deck_id, trim(j.value)
+        FROM cards c,
+             json_each(CASE WHEN json_valid(c.tags_json) THEN c.tags_json ELSE '[]' END) j
+       WHERE c.deleted_at IS NULL
+         AND j.type = 'text'
+         AND length(trim(j.value)) > 0
+   `);
 
    // 5,000 review events over the first deck's 500 cards (10 each), one
    // learning_state row per reviewed card, spread across the next two weeks.
@@ -249,6 +275,45 @@ type Measurement = {
    queries: Array<{ sql: string; params: unknown[] }>;
 };
 
+/**
+ * The pre-0009 search SQL, kept only so `pnpm d1:cost` can report the cost the
+ * new tag/FTS paths replaced. It is not imported by application code.
+ */
+async function legacySearchCards(
+   env: AppEnv,
+   opts: { ownerId: string; deckId?: string; query?: string; tag?: string; limit: number },
+) {
+   const now = iso();
+   const params: unknown[] = [now, opts.ownerId, opts.ownerId];
+   let where = 'c.owner_id = ? AND c.deleted_at IS NULL';
+   if (opts.deckId) {
+      where += ' AND c.deck_id = ?';
+      params.push(opts.deckId);
+   }
+   if (opts.query) {
+      where += ' AND c.front LIKE ?';
+      params.push(`%${opts.query}%`);
+   }
+   if (opts.tag) {
+      where += ' AND c.tags_json LIKE ?';
+      params.push(`%"${opts.tag}"%`);
+   }
+   const inner = `SELECT c.*, CASE
+         WHEN c.status = 'suspended' THEN 'suspended'
+         WHEN ls.card_id IS NULL THEN 'new'
+         WHEN ls.due_at IS NOT NULL AND ls.due_at <= ? THEN 'due'
+         ELSE 'scheduled'
+       END AS due_state
+      FROM cards c
+      LEFT JOIN learning_state ls ON ls.card_id = c.id AND ls.user_id = ?
+      WHERE ${where}`;
+   return env.DB.prepare(
+      `SELECT * FROM (${inner}) t WHERE 1=1 ORDER BY updated_at DESC, id DESC LIMIT ?`,
+   )
+      .bind(...params, opts.limit + 1)
+      .all<Row>();
+}
+
 const results: Measurement[] = [];
 let current: SqliteD1;
 
@@ -280,6 +345,10 @@ async function main() {
       updatedAt: iso(),
    };
    const services = buildMcpServices(env, user, null, 'http://localhost:8787');
+   const cachedEnv = {
+      ...env,
+      CACHE: new MemoryKv() as unknown as KVNamespace,
+   } as AppEnv;
 
    const importContent = Array.from(
       { length: 200 },
@@ -304,6 +373,36 @@ async function main() {
          due: undefined,
       }),
    );
+   await measure('search_cards (tag — legacy tags_json LIKE)', () =>
+      legacySearchCards(env, { ownerId: OWNER, tag: 'deck-1', limit: 20 }),
+   );
+   await measure('search_cards (tag — card_tags index)', () =>
+      services.searchCards({
+         limit: 20,
+         cursor: undefined,
+         deckId: undefined,
+         query: undefined,
+         tag: 'deck-1',
+         due: undefined,
+      }),
+   );
+   await measure('search_cards (text — legacy LIKE)', () =>
+      legacySearchCards(env, { ownerId: OWNER, query: '23/456', limit: 20 }),
+   );
+   await measure('search_cards (text — trigram FTS)', () =>
+      services.searchCards({
+         limit: 20,
+         cursor: undefined,
+         deckId: undefined,
+         query: '23/456',
+         tag: undefined,
+         due: undefined,
+      }),
+   );
+   await measure('list_tags (global, cold compute)', () => listTags(env, OWNER));
+   await listTags(cachedEnv, OWNER);
+   d1.reset();
+   await measure('list_tags (global, cache warm)', () => listTags(cachedEnv, OWNER));
    await measure('start_session (learn, 15 min)', () =>
       startSession(
          env,
@@ -343,7 +442,28 @@ async function main() {
          tagSeparator: ';',
       }),
    );
+   const importedTags = sqlite
+      .prepare("SELECT COUNT(*) AS count FROM card_tags WHERE deck_id = 'deck_cost_empty'")
+      .get() as { count: number };
+   if (Number(importedTags.count) !== 200) {
+      throw new Error(
+         `Import did not maintain card_tags (expected 200, got ${importedTags.count})`,
+      );
+   }
+   const importedFts = sqlite
+      .prepare(
+         'SELECT COUNT(*) AS count FROM cards_fts WHERE cards_fts MATCH \'front : "new front 0"\'',
+      )
+      .get() as { count: number };
+   if (Number(importedFts.count) !== 1) {
+      throw new Error(`Import did not maintain cards_fts (got ${importedFts.count} matches)`);
+   }
    await measure('deck stats', () => computeDeckStats(env, OWNER, DECK_WITH_HISTORY));
+   await computeDeckStats(cachedEnv, OWNER, DECK_WITH_HISTORY);
+   d1.reset();
+   await measure('deck stats (streak cache warm)', () =>
+      computeDeckStats(cachedEnv, OWNER, DECK_WITH_HISTORY),
+   );
 
    await measure('collection lifecycle', async () => {
       const collection = await insertCollection(env, { ownerId: OWNER, name: 'Spanish' });
@@ -377,6 +497,11 @@ async function main() {
                'start_session (learn, 15 min)',
                'get_study_session (300 planned cards)',
                'deck stats',
+               'search_cards (tag — legacy tags_json LIKE)',
+               'search_cards (tag — card_tags index)',
+               'search_cards (text — legacy LIKE)',
+               'search_cards (text — trigram FTS)',
+               'list_tags (global, cold compute)',
             ].includes(row.action)
          ) {
             continue;

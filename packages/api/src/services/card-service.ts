@@ -16,6 +16,7 @@ import {
    updateCard,
 } from '../repositories/cards';
 import { releaseCardSlots, reserveCardSlots } from '../repositories/decks';
+import { parseTagsJson } from '../repositories/card-tags';
 import { getOwnedDeck } from './deck-service';
 
 function cardLimitExceeded(deckId: string, current: number, requested: number) {
@@ -106,7 +107,10 @@ export async function patchCard(
       authorId: userId,
       snapshot: existing as unknown as Record<string, unknown>,
    });
-   const card = await updateCard(env, cardId, input);
+   const card = await updateCard(env, cardId, input, {
+      ownerId: existing.ownerId,
+      deckId: existing.deckId,
+   });
    if (!card) throw notFound('Card not found');
    return card;
 }
@@ -129,7 +133,12 @@ export async function restoreCard(env: AppEnv, userId: string, cardId: string): 
    const reserved = await reserveCardSlots(env, deckId, 1, MAX_CARDS_PER_DECK);
    if (!reserved) throw cardLimitExceeded(deckId, deck.cardCount, 1);
    try {
-      await restoreCardRow(env, cardId);
+      await restoreCardRow(env, {
+         cardId,
+         ownerId: userId,
+         deckId,
+         tags: parseTagsJson(row.tags_json),
+      });
    } catch (cause) {
       await releaseCardSlots(env, deckId, 1);
       throw cause;

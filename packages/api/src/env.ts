@@ -32,6 +32,12 @@ export type AppEnv = {
    MCP_DEV_USER_EMAIL?: string;
    /** OAuth grants, tokens, and registered clients for the ChatGPT connector. */
    OAUTH_KV?: KVNamespace;
+   /**
+    * Derived, stale-tolerant cache (review streak, global tag summary). Kept
+    * separate from `OAUTH_KV` because auth grants and cache have different
+    * safety rules. Optional so a deployment without it simply recomputes.
+    */
+   CACHE?: KVNamespace;
    /** Injected by @cloudflare/workers-oauth-provider for `/oauth/authorize`. */
    OAUTH_PROVIDER?: OAuthHelpers;
    AI_GATEWAY_URL: string;

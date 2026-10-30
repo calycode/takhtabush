@@ -61,6 +61,7 @@ export async function pruneDeletedCards(env: AppEnv, beforeIso: string): Promise
       'card_id IN (SELECT id FROM cards WHERE deleted_at IS NOT NULL AND deleted_at < ?)';
 
    await env.DB.prepare(`DELETE FROM review_events WHERE ${predicate}`).bind(beforeIso).run();
+   await env.DB.prepare(`DELETE FROM card_tags WHERE ${predicate}`).bind(beforeIso).run();
    await env.DB.prepare(`DELETE FROM card_revisions WHERE ${predicate}`).bind(beforeIso).run();
    await env.DB.prepare(`DELETE FROM learning_state WHERE ${predicate}`).bind(beforeIso).run();
    const result = await env.DB.prepare(

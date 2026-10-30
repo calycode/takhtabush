@@ -36,12 +36,16 @@ compact card summaries flatten it to plain text.
 ## Tags and collections
 
 - Tags are free-form labels on a card. Use the tag picker or type a new tag.
-- The deck page has a tag filter and shows tag counts.
+- The deck page has a tag filter and shows tag counts. Tag suggestions are
+  generated from your cards; a brand-new tag can take a few minutes to appear in
+  the global suggestion list.
 - Collections group decks in the library. A deck belongs to at most one
   collection (or none), and a collection has no sub-collections.
 - Create a collection from the deck library, then move decks into it from the
   deck's ⋯ menu or from the deck settings page. Use the filter chips to show
   **All decks**, **No collection**, or one collection.
+- Rename a collection with its ✎ button and move it up or down with ↑/↓. The
+  order is saved on the server; there is no drag-and-drop.
 - Deleting a collection keeps its decks; they simply become unfiled.
 
 Tags describe card content and are the easiest way to build a study subset:

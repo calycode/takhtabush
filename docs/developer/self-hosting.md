@@ -49,7 +49,8 @@ not see it.
 
 4. Build for review.
 5. Confirm in the review that Appflare will create D1 `DB`, R2 `MEDIA`, the
-   `EMAIL`/`AI`/`ASSETS` bindings, the cron trigger, and the migrations.
+   `OAUTH_KV`/`CACHE` KV namespaces, the `EMAIL`/`AI`/`ASSETS` bindings, the cron
+   trigger, and the migrations.
 6. Install with:
    - Worker name: `takhtabush` or your choice
    - `SESSION_SECRET`: generate a long random value
@@ -57,8 +58,9 @@ not see it.
    - `OWNER_EMAIL`: optional
    - `ALLOWED_EMAILS`: empty for strict single-user
    - `EMAIL_FROM`: empty for now
-7. Appflare creates D1 `<worker-name>-DB` and R2 `<worker-name>-MEDIA`, uploads
-   the Worker, applies `migrations/`, and runs the health check.
+7. Appflare creates D1 `<worker-name>-DB`, R2 `<worker-name>-MEDIA`, and both KV
+   namespaces, uploads the Worker, applies `migrations/`, and runs the health
+   check.
 
 Repo installs are marked **Not from the catalog, not checked** and are not
 updated automatically. Use **Check for changes → Rebuild and update** when you
@@ -77,8 +79,8 @@ consent flow. `https://<app>/mcp/oauth` also works as an alias.
 ## Route 2: Deploy to Cloudflare button
 
 The button clones the repository into your GitHub account and uses Workers
-Builds. Cloudflare reads the root `wrangler.jsonc`, provisions the D1 database
-and R2 bucket, and deploys the Worker.
+Builds. Cloudflare reads the root `wrangler.jsonc`, provisions the D1 database,
+R2 bucket, and the `OAUTH_KV`/`CACHE` KV namespaces, and deploys the Worker.
 
 1. Build the SPA before pushing (or let the Workers Builds command do it):
    `pnpm build`.
@@ -101,7 +103,7 @@ and R2 bucket, and deploys the Worker.
 
 ## Route 3: Manual `wrangler deploy`
 
-Wrangler 4.57+ can auto-provision missing D1/R2 resources on deploy. If you
+Wrangler 4.57+ can auto-provision missing D1/R2/KV resources on deploy. If you
 prefer explicit resources, create them first and fill in their ids.
 
 ```bash
@@ -111,7 +113,9 @@ pnpm deploy
 # Option B: create explicitly first
 wrangler d1 create takhtabush
 wrangler r2 bucket create takhtabush-media
-# then add database_id and bucket_name to wrangler.jsonc
+wrangler kv namespace create OAUTH_KV
+wrangler kv namespace create CACHE
+# then add database_id, bucket_name, and both kv namespace ids to wrangler.jsonc
 pnpm deploy
 ```
 

@@ -35,7 +35,12 @@ import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import { cn } from '@caly/ui/lib/utils';
 import { MAX_CARDS_PER_DECK, type Collection, type Deck } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
-import { createCollection, deleteCollection, listCollections } from '../lib/api/collections';
+import {
+   createCollection,
+   deleteCollection,
+   listCollections,
+   updateCollection,
+} from '../lib/api/collections';
 import { createDeck, downloadDeckExport, listDecks, updateDeck } from '../lib/api/decks';
 
 type Filter = { kind: 'all' } | { kind: 'unfiled' } | { kind: 'collection'; id: string };
@@ -148,6 +153,8 @@ export function DeckLibrary() {
    const [open, setOpen] = useState(false);
    const [collectionOpen, setCollectionOpen] = useState(false);
    const [collectionName, setCollectionName] = useState('');
+   const [renaming, setRenaming] = useState<Collection | null>(null);
+   const [renameValue, setRenameValue] = useState('');
    const [menuId, setMenuId] = useState<string | null>(null);
    const [cursor, setCursor] = useState<string | undefined>(undefined);
    const [hasMore, setHasMore] = useState(false);
@@ -243,6 +250,62 @@ export function DeckLibrary() {
       load(filter);
    }
 
+   function startRename(collection: Collection) {
+      setRenaming(collection);
+      setRenameValue(collection.name);
+   }
+
+   async function submitRename(event: Event) {
+      event.preventDefault();
+      if (!renaming || !renameValue.trim()) return;
+      try {
+         const result = await updateCollection(renaming.id, { name: renameValue.trim() });
+         setCollections((current) =>
+            current.map((item) => (item.id === result.data.id ? result.data : item)),
+         );
+         if (filter.kind === 'collection' && filter.id === result.data.id) {
+            setFilter({ kind: 'collection', id: result.data.id });
+         }
+         setRenaming(null);
+      } catch (cause) {
+         setError(cause instanceof ApiError ? cause.message : 'Failed to rename collection');
+      }
+   }
+
+   /** Swap positions with the neighbour; no drag-and-drop and no renumbering pass. */
+   async function reorderCollection(collection: Collection, direction: -1 | 1) {
+      const index = collections.findIndex((item) => item.id === collection.id);
+      if (index < 0) return;
+      const neighbour = collections[index + direction];
+      if (!neighbour) return;
+      try {
+         if (collection.position === neighbour.position) {
+            // Defensive fallback for legacy rows that share a position: renumber
+            // the visible list in order, changing only the rows that need it.
+            const ordered = [...collections];
+            [ordered[index], ordered[index + direction]] = [
+               ordered[index + direction]!,
+               ordered[index]!,
+            ];
+            await Promise.all(
+               ordered.map((item, position) =>
+                  item.position === position + 1
+                     ? null
+                     : updateCollection(item.id, { position: position + 1 }),
+               ),
+            );
+         } else {
+            await Promise.all([
+               updateCollection(collection.id, { position: neighbour.position }),
+               updateCollection(neighbour.id, { position: collection.position }),
+            ]);
+         }
+         loadCollections();
+      } catch (cause) {
+         setError(cause instanceof ApiError ? cause.message : 'Failed to reorder collections');
+      }
+   }
+
    const collectionNameById = new Map(collections.map((item) => [item.id, item.name]));
    const activeCollection =
       filter.kind === 'collection' ? collections.find((item) => item.id === filter.id) : null;
@@ -281,6 +344,37 @@ export function DeckLibrary() {
                         </div>
                         <DialogFooter>
                            <Button type='submit'>Create</Button>
+                        </DialogFooter>
+                     </form>
+                  </DialogContent>
+               </Dialog>
+
+               <Dialog
+                  open={renaming !== null}
+                  onOpenChange={(next) => {
+                     if (!next) setRenaming(null);
+                  }}
+               >
+                  <DialogContent>
+                     <form onSubmit={submitRename}>
+                        <DialogHeader>
+                           <DialogTitle>Rename collection</DialogTitle>
+                           <DialogDescription>The decks inside keep their place.</DialogDescription>
+                        </DialogHeader>
+                        <div className='flex flex-col gap-1.5 py-3'>
+                           <Label htmlFor='collection-rename'>Name</Label>
+                           <Input
+                              id='collection-rename'
+                              value={renameValue}
+                              autoFocus
+                              maxLength={80}
+                              onInput={(event) =>
+                                 setRenameValue((event.target as HTMLInputElement).value)
+                              }
+                           />
+                        </div>
+                        <DialogFooter>
+                           <Button type='submit'>Save</Button>
                         </DialogFooter>
                      </form>
                   </DialogContent>
@@ -350,7 +444,7 @@ export function DeckLibrary() {
                >
                   No collection
                </FilterChip>
-               {collections.map((collection) => (
+               {collections.map((collection, index) => (
                   <span
                      key={collection.id}
                      className='inline-flex items-center'
@@ -361,15 +455,46 @@ export function DeckLibrary() {
                      >
                         {collection.name} · {collection.deckCount}
                      </FilterChip>
-                     <button
-                        type='button'
-                        title={`Delete ${collection.name}`}
-                        aria-label={`Delete ${collection.name}`}
-                        className='-ml-1 rounded-full px-1 text-xs text-muted-foreground hover:text-destructive'
-                        onClick={() => void removeCollection(collection)}
-                     >
-                        ×
-                     </button>
+                     <span className='-ml-1 flex items-center'>
+                        <button
+                           type='button'
+                           title={`Move ${collection.name} up`}
+                           aria-label={`Move ${collection.name} up`}
+                           disabled={index === 0}
+                           className='px-0.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30'
+                           onClick={() => void reorderCollection(collection, -1)}
+                        >
+                           ↑
+                        </button>
+                        <button
+                           type='button'
+                           title={`Move ${collection.name} down`}
+                           aria-label={`Move ${collection.name} down`}
+                           disabled={index === collections.length - 1}
+                           className='px-0.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30'
+                           onClick={() => void reorderCollection(collection, 1)}
+                        >
+                           ↓
+                        </button>
+                        <button
+                           type='button'
+                           title={`Rename ${collection.name}`}
+                           aria-label={`Rename ${collection.name}`}
+                           className='px-0.5 text-xs text-muted-foreground hover:text-foreground'
+                           onClick={() => startRename(collection)}
+                        >
+                           ✎
+                        </button>
+                        <button
+                           type='button'
+                           title={`Delete ${collection.name}`}
+                           aria-label={`Delete ${collection.name}`}
+                           className='px-0.5 text-xs text-muted-foreground hover:text-destructive'
+                           onClick={() => void removeCollection(collection)}
+                        >
+                           ×
+                        </button>
+                     </span>
                   </span>
                ))}
             </div>

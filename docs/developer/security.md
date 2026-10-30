@@ -57,6 +57,10 @@ Rotate `SETUP_TOKEN` after setup if you do not need recovery, or keep it strong.
 - Keys can call only tools covered by their scopes. `tools/list` is filtered to
   the same grant.
 - OAuth grants, refresh tokens, and registered clients live in `OAUTH_KV`.
+- The `CACHE` KV namespace is separate and holds only derived, stale-tolerant
+  values (review streak, global tag summary). It is never used for
+  authorization; KV is eventually consistent. See the
+  [D1 cost model](d1-cost-model.md) §11.
 - OAuth consent uses `__Host-` cookies; test the full flow over HTTPS.
 - OAuth and API keys resolve to the same user and the same MCP scope model.
 

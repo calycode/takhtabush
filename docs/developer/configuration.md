@@ -48,9 +48,16 @@ SETUP_TOKEN=dev-setup-token
 | `DB`       | D1                       | System of record                      |
 | `MEDIA`    | R2                       | Images and audio                      |
 | `OAUTH_KV` | KV                       | OAuth grants, refresh tokens, clients |
+| `CACHE`    | KV                       | Derived review streak and tag summary |
 | `AI`       | Workers AI               | Clef fallback                         |
 | `EMAIL`    | Cloudflare Email Service | Magic links                           |
 | `ASSETS`   | Static assets            | The built SPA                         |
+
+`CACHE` is deliberately separate from `OAUTH_KV`: it holds only stale-tolerant,
+derived values and is never used for authorization. Both namespaces have no id
+in the production config, so Appflare/Cloudflare must provision them on deploy;
+a deployment without `CACHE` still works and recomputes from D1. See the
+[D1 cost model](d1-cost-model.md) for the cache policy and TTLs.
 
 The daily cron trigger runs `runCleanup`, which prunes expired auth artifacts
 and orphaned R2 media.

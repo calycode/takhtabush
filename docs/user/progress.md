@@ -34,4 +34,5 @@ now**.
 - **Exam soon** — use Revise now to ignore the schedule and cover the set.
 
 The statistics page is read-only; it never changes your schedule. Studying is
-what moves the numbers.
+what moves the numbers. The streak is cached for up to ten minutes, so it can
+lag a review that just happened and catches up on its own.

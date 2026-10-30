@@ -1,5 +1,6 @@
 import { newId, nowIso } from '@caly/worker-kit';
 import type { AppEnv } from '../env';
+import type { UserRow } from './users';
 
 export type SessionRow = {
    id: string;
@@ -61,6 +62,29 @@ export function findActiveSessionByHash(
    )
       .bind(tokenHash, nowIso())
       .first<SessionRow>();
+}
+
+export type SessionUserRow = UserRow & { session_id: string };
+
+/**
+ * Resolve the session and its user in one query. Every authenticated request
+ * used to read the session and then the user (two rows); this keeps the same
+ * token-hash/expiry/revocation semantics with one row and one statement.
+ */
+export function findActiveSessionUser(
+   env: AppEnv,
+   tokenHash: string,
+): Promise<SessionUserRow | null> {
+   return env.DB.prepare(
+      `SELECT s.id AS session_id,
+              u.id, u.email, u.display_name, u.is_owner, u.created_at, u.updated_at
+         FROM sessions s
+         JOIN users u ON u.id = s.user_id
+        WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ?
+        LIMIT 1`,
+   )
+      .bind(tokenHash, nowIso())
+      .first<SessionUserRow>();
 }
 
 export async function revokeSession(env: AppEnv, id: string): Promise<void> {

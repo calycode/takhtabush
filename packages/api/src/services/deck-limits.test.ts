@@ -194,6 +194,7 @@ describe('import cap and batching', () => {
          { match: /^SELECT id, front FROM cards/, respond: () => ({ all: [] }) },
          { match: RESERVE, respond: () => ({ changes: 1 }) },
          { match: INSERT_CARD, respond: () => ({ changes: 1 }) },
+         { match: /^INSERT OR IGNORE INTO card_tags/, respond: () => ({ changes: 1 }) },
       ]);
 
       const result = await importIntoDeck(env(db), OWNER, DECK, {
@@ -224,6 +225,8 @@ describe('import cap and batching', () => {
          },
          { match: /^INSERT INTO card_revisions/, respond: () => ({ changes: 1 }) },
          { match: /^UPDATE cards SET/, respond: () => ({ changes: 1 }) },
+         { match: /^DELETE FROM card_tags/, respond: () => ({ changes: 1 }) },
+         { match: /^INSERT OR IGNORE INTO card_tags/, respond: () => ({ changes: 1 }) },
       ]);
 
       const result = await importIntoDeck(env(db), OWNER, DECK, {

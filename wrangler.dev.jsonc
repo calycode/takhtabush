@@ -38,6 +38,9 @@
       {
          "binding": "OAUTH_KV",
       },
+      {
+         "binding": "CACHE",
+      },
    ],
    "ai": {
       "binding": "AI",
