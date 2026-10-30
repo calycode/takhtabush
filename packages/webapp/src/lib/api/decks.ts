@@ -15,9 +15,15 @@ import { API_BASE_URL, apiFetch } from './client';
 
 type PageResponse<T> = { data: T[]; meta: { nextCursor: string | null; hasMore: boolean } };
 
-export function listDecks(cursor?: string) {
-   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-   return apiFetch<PageResponse<Deck>>(`/decks${query}`);
+export function listDecks(
+   opts: { cursor?: string; collectionId?: string; unfiled?: boolean } = {},
+) {
+   const params = new URLSearchParams();
+   if (opts.cursor) params.set('cursor', opts.cursor);
+   if (opts.collectionId) params.set('collectionId', opts.collectionId);
+   else if (opts.unfiled) params.set('unfiled', 'true');
+   const query = params.toString();
+   return apiFetch<PageResponse<Deck>>(`/decks${query ? `?${query}` : ''}`);
 }
 
 export function getDeck(id: string) {

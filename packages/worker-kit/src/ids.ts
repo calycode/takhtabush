@@ -5,7 +5,7 @@ export type IdPrefix =
    | 'deck'
    | 'card'
    | 'rev'
-   | 'fold'
+   | 'col'
    | 'med'
    | 'stu'
    | 'evt'

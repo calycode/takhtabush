@@ -3,7 +3,7 @@ export * from './auth';
 export * from './decks';
 export * from './cards';
 export * from './import';
-export * from './folders';
+export * from './collections';
 export * from './tags';
 export * from './media';
 export * from './study';

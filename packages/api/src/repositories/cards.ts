@@ -2,12 +2,46 @@ import { encodeCursor, decodeCursor } from '@caly/shared';
 import type { Card, CreateCardInput, UpdateCardInput } from '@caly/shared';
 import { newId, nowIso } from '@caly/worker-kit';
 import type { AppEnv } from '../env';
+import { chunk, D1_MAX_BOUND_PARAMS, placeholders } from '../lib/d1';
 import { mapCard } from '../lib/map';
+
+/** Statements per `db.batch()` call. Keeps one batch well under D1's limits. */
+const BATCH_STATEMENTS = 50;
+
+/**
+ * Ids per `IN (...)` read. One parameter is reserved for the owner id, and the
+ * remainder stays comfortably below D1's 100-bound-parameter ceiling.
+ */
+const IN_CHUNK = D1_MAX_BOUND_PARAMS - 10;
 
 export function getCardRow(env: AppEnv, id: string): Promise<Record<string, unknown> | null> {
    return env.DB.prepare('SELECT * FROM cards WHERE id = ? AND deleted_at IS NULL')
       .bind(id)
       .first<Record<string, unknown>>();
+}
+
+/**
+ * Batched card read for a known id list. One statement per `IN_CHUNK` ids, so
+ * a 500-card session costs six reads instead of 500. Never returns cards the
+ * caller does not own or that are soft-deleted.
+ */
+export async function getCardRowsByIds(
+   env: AppEnv,
+   ownerId: string,
+   ids: readonly string[],
+): Promise<Record<string, unknown>[]> {
+   const rows: Record<string, unknown>[] = [];
+   for (const batch of chunk(ids, IN_CHUNK)) {
+      if (batch.length === 0) continue;
+      const result = await env.DB.prepare(
+         `SELECT * FROM cards
+           WHERE owner_id = ? AND deleted_at IS NULL AND id IN (${placeholders(batch.length)})`,
+      )
+         .bind(ownerId, ...batch)
+         .all<Record<string, unknown>>();
+      rows.push(...(result.results ?? []));
+   }
+   return rows;
 }
 
 export async function listCards(
@@ -42,13 +76,20 @@ export async function listCards(
    };
 }
 
-/** Every tag string used on the user's live cards (for tag suggestions). */
-export async function listOwnedTagStrings(env: AppEnv, ownerId: string): Promise<string[]> {
-   const result = await env.DB.prepare(
-      'SELECT tags_json FROM cards WHERE owner_id = ? AND deleted_at IS NULL',
-   )
-      .bind(ownerId)
-      .all<{ tags_json: string }>();
+/** Every tag string used on the user's live cards (optionally one deck). */
+export async function listOwnedTagStrings(
+   env: AppEnv,
+   ownerId: string,
+   deckId?: string,
+): Promise<string[]> {
+   const statement = deckId
+      ? env.DB.prepare(
+           'SELECT tags_json FROM cards WHERE owner_id = ? AND deck_id = ? AND deleted_at IS NULL',
+        ).bind(ownerId, deckId)
+      : env.DB.prepare(
+           'SELECT tags_json FROM cards WHERE owner_id = ? AND deleted_at IS NULL',
+        ).bind(ownerId);
+   const result = await statement.all<{ tags_json: string }>();
 
    const tags: string[] = [];
    for (const row of result.results ?? []) {
@@ -83,14 +124,16 @@ export async function filterOwnedCardIds(
    ids: string[],
 ): Promise<string[]> {
    if (ids.length === 0) return [];
-   const placeholders = ids.map(() => '?').join(',');
-   const result = await env.DB.prepare(
-      `SELECT id FROM cards
-        WHERE owner_id = ? AND deck_id = ? AND deleted_at IS NULL AND id IN (${placeholders})`,
-   )
-      .bind(ownerId, deckId, ...ids)
-      .all<{ id: string }>();
-   const owned = new Set((result.results ?? []).map((row) => row.id));
+   const owned = new Set<string>();
+   for (const batch of chunk(ids, IN_CHUNK - 2)) {
+      const result = await env.DB.prepare(
+         `SELECT id FROM cards
+           WHERE owner_id = ? AND deck_id = ? AND deleted_at IS NULL AND id IN (${placeholders(batch.length)})`,
+      )
+         .bind(ownerId, deckId, ...batch)
+         .all<{ id: string }>();
+      for (const row of result.results ?? []) owned.add(row.id);
+   }
    return ids.filter((id) => owned.has(id));
 }
 
@@ -119,23 +162,69 @@ function cardFields(input: CreateCardInput) {
    ];
 }
 
+const INSERT_CARD_SQL = `INSERT INTO cards
+   (id, deck_id, owner_id, type, front, back, cloze_text, choices_json, correct_choice,
+    image_media_id, audio_media_id, tags_json, status, source, created_at, updated_at, deleted_at)
+ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`;
+
+function insertCardStatement(
+   env: AppEnv,
+   row: { id: string; deckId: string; ownerId: string; card: CreateCardInput },
+) {
+   const now = nowIso();
+   return env.DB.prepare(INSERT_CARD_SQL).bind(
+      row.id,
+      row.deckId,
+      row.ownerId,
+      ...cardFields(row.card),
+      now,
+      now,
+   );
+}
+
 export async function insertCard(
    env: AppEnv,
    input: { deckId: string; ownerId: string; card: CreateCardInput },
 ): Promise<Card> {
    const id = newId('card');
-   const now = nowIso();
-   await env.DB.prepare(
-      `INSERT INTO cards
-         (id, deck_id, owner_id, type, front, back, cloze_text, choices_json, correct_choice,
-          image_media_id, audio_media_id, tags_json, status, source, created_at, updated_at, deleted_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-   )
-      .bind(id, input.deckId, input.ownerId, ...cardFields(input.card), now, now)
-      .run();
+   await insertCardStatement(env, { id, ...input }).run();
    const row = await getCardRow(env, id);
    if (!row) throw new Error('Failed to create card');
    return mapCard(row);
+}
+
+/**
+ * Insert many cards with `db.batch()` (one subrequest per 50 statements).
+ * Callers reserve the deck's card slots first.
+ */
+export async function insertCardRowsRaw(
+   env: AppEnv,
+   rows: Array<{ id: string; deckId: string; ownerId: string; card: CreateCardInput }>,
+): Promise<void> {
+   if (rows.length === 0) return;
+   for (const batch of chunk(rows, BATCH_STATEMENTS)) {
+      await env.DB.batch(batch.map((row) => insertCardStatement(env, row)));
+   }
+}
+
+/**
+ * Insert many cards and read the created rows back in one chunked query. Used
+ * by MCP bulk create; import only needs the counts and uses the raw variant.
+ */
+export async function insertCardRows(
+   env: AppEnv,
+   rows: Array<{ id: string; deckId: string; ownerId: string; card: CreateCardInput }>,
+): Promise<Card[]> {
+   if (rows.length === 0) return [];
+   await insertCardRowsRaw(env, rows);
+   const ids = rows.map((row) => row.id);
+   const byId = new Map(
+      (await getCardRowsByIds(env, rows[0]!.ownerId, ids)).map((row) => [String(row.id), row]),
+   );
+   return ids.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [mapCard(row)] : [];
+   });
 }
 
 export async function updateCard(
@@ -143,17 +232,9 @@ export async function updateCard(
    id: string,
    patch: UpdateCardInput,
 ): Promise<Card | null> {
-   const map: Array<[keyof UpdateCardInput, string]> = [
-      ['front', 'front'],
-      ['back', 'back'],
-      ['clozeText', 'cloze_text'],
-      ['imageMediaId', 'image_media_id'],
-      ['audioMediaId', 'audio_media_id'],
-      ['status', 'status'],
-   ];
    const sets: string[] = [];
    const params: unknown[] = [];
-   for (const [key, column] of map) {
+   for (const [key, column] of CARD_UPDATE_COLUMNS) {
       if (patch[key] !== undefined) {
          sets.push(`${column} = ?`);
          params.push(patch[key]);
@@ -181,6 +262,59 @@ export async function updateCard(
    }
    const row = await getCardRow(env, id);
    return row ? mapCard(row) : null;
+}
+
+const CARD_UPDATE_COLUMNS: Array<[keyof UpdateCardInput, string]> = [
+   ['front', 'front'],
+   ['back', 'back'],
+   ['clozeText', 'cloze_text'],
+   ['imageMediaId', 'image_media_id'],
+   ['audioMediaId', 'audio_media_id'],
+   ['status', 'status'],
+];
+
+/**
+ * Apply import updates and their revision snapshots in batched subrequests.
+ * Import used to call `patchCard` per row (four statements each); this keeps
+ * the statement count proportional to batches instead of rows.
+ */
+export async function updateCardRows(
+   env: AppEnv,
+   updates: Array<{
+      cardId: string;
+      authorId: string;
+      snapshot: Record<string, unknown>;
+      patch: UpdateCardInput;
+   }>,
+): Promise<void> {
+   if (updates.length === 0) return;
+   const statements = updates.flatMap((update) => {
+      const now = nowIso();
+      const sets: string[] = [];
+      const params: unknown[] = [];
+      for (const [key, column] of CARD_UPDATE_COLUMNS) {
+         if (update.patch[key] !== undefined) {
+            sets.push(`${column} = ?`);
+            params.push(update.patch[key]);
+         }
+      }
+      if (update.patch.tags !== undefined) {
+         sets.push('tags_json = ?');
+         params.push(JSON.stringify(update.patch.tags));
+      }
+      sets.push('updated_at = ?');
+      params.push(now, update.cardId);
+      return [
+         env.DB.prepare(
+            `INSERT INTO card_revisions (id, card_id, author_id, snapshot_json, created_at)
+             VALUES (?, ?, ?, ?, ?)`,
+         ).bind(newId('rev'), update.cardId, update.authorId, JSON.stringify(update.snapshot), now),
+         env.DB.prepare(`UPDATE cards SET ${sets.join(', ')} WHERE id = ?`).bind(...params),
+      ];
+   });
+   for (const batch of chunk(statements, BATCH_STATEMENTS)) {
+      await env.DB.batch(batch);
+   }
 }
 
 export async function softDeleteCard(env: AppEnv, id: string): Promise<void> {

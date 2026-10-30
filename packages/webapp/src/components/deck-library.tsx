@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { ComponentChildren } from 'preact';
 import { useLocation } from 'preact-iso';
 import { Button } from '@caly/ui/components/button';
 import { Input } from '@caly/ui/components/input';
 import { Label } from '@caly/ui/components/label';
+import { Select } from '@caly/ui/components/select';
 import {
    Card,
    CardAction,
@@ -30,11 +32,33 @@ import {
 import { Badge } from '@caly/ui/components/badge';
 import { Skeleton } from '@caly/ui/components/skeleton';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
-import type { Deck } from '@caly/shared';
+import { cn } from '@caly/ui/lib/utils';
+import { MAX_CARDS_PER_DECK, type Collection, type Deck } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
-import { createDeck, downloadDeckExport, listDecks } from '../lib/api/decks';
+import { createCollection, deleteCollection, listCollections } from '../lib/api/collections';
+import { createDeck, downloadDeckExport, listDecks, updateDeck } from '../lib/api/decks';
 
-function DeckMenuItems({ deck, onClose }: { deck: Deck; onClose: () => void }) {
+type Filter = { kind: 'all' } | { kind: 'unfiled' } | { kind: 'collection'; id: string };
+
+const ALL: Filter = { kind: 'all' };
+
+function filterQuery(filter: Filter) {
+   if (filter.kind === 'collection') return { collectionId: filter.id };
+   if (filter.kind === 'unfiled') return { unfiled: true };
+   return {};
+}
+
+function DeckMenuItems({
+   deck,
+   collections,
+   onClose,
+   onMove,
+}: {
+   deck: Deck;
+   collections: Collection[];
+   onClose: () => void;
+   onMove: (deck: Deck, collectionId: string | null) => void;
+}) {
    const { route } = useLocation();
    return (
       <>
@@ -48,6 +72,46 @@ function DeckMenuItems({ deck, onClose }: { deck: Deck; onClose: () => void }) {
          >
             Edit deck
          </button>
+         <details className='group/sub relative'>
+            <summary className='flex cursor-pointer list-none items-center justify-between gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted [&::-webkit-details-marker]:hidden'>
+               Move to collection
+               <span className='text-muted-foreground'>›</span>
+            </summary>
+            <div className='absolute right-full top-0 mr-1 min-w-40 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'>
+               <button
+                  type='button'
+                  className={cn(
+                     'flex w-full items-center rounded-md px-2 py-1 text-left text-xs hover:bg-muted',
+                     deck.collectionId === null && 'font-medium',
+                  )}
+                  onClick={() => {
+                     onClose();
+                     onMove(deck, null);
+                  }}
+               >
+                  No collection
+               </button>
+               {collections.map((collection) => (
+                  <button
+                     key={collection.id}
+                     type='button'
+                     className={cn(
+                        'flex w-full items-center rounded-md px-2 py-1 text-left text-xs hover:bg-muted',
+                        deck.collectionId === collection.id && 'font-medium',
+                     )}
+                     onClick={() => {
+                        onClose();
+                        onMove(deck, collection.id);
+                     }}
+                  >
+                     {collection.name}
+                  </button>
+               ))}
+               {collections.length === 0 && (
+                  <p className='px-2 py-1 text-xs text-muted-foreground'>No collections yet.</p>
+               )}
+            </div>
+         </details>
          <details className='group/sub relative'>
             <summary className='flex cursor-pointer list-none items-center justify-between gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted [&::-webkit-details-marker]:hidden'>
                Export
@@ -75,18 +139,30 @@ function DeckMenuItems({ deck, onClose }: { deck: Deck; onClose: () => void }) {
 
 export function DeckLibrary() {
    const [decks, setDecks] = useState<Deck[]>([]);
+   const [collections, setCollections] = useState<Collection[]>([]);
+   const [filter, setFilter] = useState<Filter>(ALL);
    const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'auth'>('loading');
    const [error, setError] = useState<string | null>(null);
    const [title, setTitle] = useState('');
+   const [deckCollectionId, setDeckCollectionId] = useState('');
    const [open, setOpen] = useState(false);
+   const [collectionOpen, setCollectionOpen] = useState(false);
+   const [collectionName, setCollectionName] = useState('');
    const [menuId, setMenuId] = useState<string | null>(null);
    const [cursor, setCursor] = useState<string | undefined>(undefined);
    const [hasMore, setHasMore] = useState(false);
    const [loadingMore, setLoadingMore] = useState(false);
 
-   const refresh = useCallback(() => {
+   const loadCollections = useCallback(() => {
+      listCollections()
+         .then((result) => setCollections(result.data))
+         .catch(() => undefined);
+   }, []);
+
+   const load = useCallback((next: Filter) => {
       setStatus('loading');
-      listDecks()
+      setFilter(next);
+      listDecks(filterQuery(next))
          .then((result) => {
             setDecks(result.data);
             setCursor(result.meta.nextCursor ?? undefined);
@@ -103,7 +179,8 @@ export function DeckLibrary() {
          });
    }, []);
 
-   useEffect(() => refresh(), [refresh]);
+   useEffect(() => loadCollections(), [loadCollections]);
+   useEffect(() => load(ALL), [load]);
 
    useEffect(() => {
       if (!menuId) return;
@@ -115,7 +192,7 @@ export function DeckLibrary() {
    async function loadMore() {
       setLoadingMore(true);
       try {
-         const result = await listDecks(cursor);
+         const result = await listDecks({ ...filterQuery(filter), cursor });
          setDecks((current) => [...current, ...result.data]);
          setCursor(result.meta.nextCursor ?? undefined);
          setHasMore(result.meta.hasMore);
@@ -124,46 +201,185 @@ export function DeckLibrary() {
       }
    }
 
-   async function submit(event: Event) {
+   async function submitDeck(event: Event) {
       event.preventDefault();
       if (!title.trim()) return;
-      const result = await createDeck({ title: title.trim() });
-      setDecks((current) => [result.data, ...current]);
+      await createDeck({
+         title: title.trim(),
+         ...(deckCollectionId ? { collectionId: deckCollectionId } : {}),
+      });
       setTitle('');
+      setDeckCollectionId('');
       setOpen(false);
+      loadCollections();
+      load(filter);
    }
+
+   async function submitCollection(event: Event) {
+      event.preventDefault();
+      if (!collectionName.trim()) return;
+      try {
+         const result = await createCollection({ name: collectionName.trim() });
+         setCollectionName('');
+         setCollectionOpen(false);
+         setCollections((current) => [...current, result.data]);
+         load({ kind: 'collection', id: result.data.id });
+      } catch (cause) {
+         setError(cause instanceof ApiError ? cause.message : 'Failed to create collection');
+      }
+   }
+
+   async function removeCollection(collection: Collection) {
+      if (!window.confirm(`Delete “${collection.name}”? Its decks move to no collection.`)) return;
+      await deleteCollection(collection.id).catch(() => undefined);
+      setCollections((current) => current.filter((item) => item.id !== collection.id));
+      if (filter.kind === 'collection' && filter.id === collection.id) load(ALL);
+      else load(filter);
+   }
+
+   async function moveDeck(deck: Deck, collectionId: string | null) {
+      await updateDeck(deck.id, { collectionId }).catch(() => undefined);
+      loadCollections();
+      load(filter);
+   }
+
+   const collectionNameById = new Map(collections.map((item) => [item.id, item.name]));
+   const activeCollection =
+      filter.kind === 'collection' ? collections.find((item) => item.id === filter.id) : null;
 
    return (
       <section className='flex flex-col gap-4'>
-         <div className='flex items-center justify-between gap-4'>
+         <div className='flex flex-wrap items-center justify-between gap-4'>
             <h2 className='font-heading text-lg font-medium'>Your decks</h2>
-            <Dialog
-               open={open}
-               onOpenChange={setOpen}
-            >
-               <DialogTrigger render={<Button />}>New deck</DialogTrigger>
-               <DialogContent>
-                  <form onSubmit={submit}>
-                     <DialogHeader>
-                        <DialogTitle>Create a deck</DialogTitle>
-                        <DialogDescription>Give it a title; add cards next.</DialogDescription>
-                     </DialogHeader>
-                     <div className='flex flex-col gap-1.5 py-3'>
-                        <Label htmlFor='deck-title'>Title</Label>
-                        <Input
-                           id='deck-title'
-                           value={title}
-                           autoFocus
-                           onInput={(event) => setTitle((event.target as HTMLInputElement).value)}
-                        />
-                     </div>
-                     <DialogFooter>
-                        <Button type='submit'>Create</Button>
-                     </DialogFooter>
-                  </form>
-               </DialogContent>
-            </Dialog>
+            <div className='flex flex-wrap items-center gap-2'>
+               <Dialog
+                  open={collectionOpen}
+                  onOpenChange={setCollectionOpen}
+               >
+                  <DialogTrigger render={<Button variant='outline' />}>
+                     New collection
+                  </DialogTrigger>
+                  <DialogContent>
+                     <form onSubmit={submitCollection}>
+                        <DialogHeader>
+                           <DialogTitle>Create a collection</DialogTitle>
+                           <DialogDescription>
+                              Group decks without moving tags out of them.
+                           </DialogDescription>
+                        </DialogHeader>
+                        <div className='flex flex-col gap-1.5 py-3'>
+                           <Label htmlFor='collection-name'>Name</Label>
+                           <Input
+                              id='collection-name'
+                              value={collectionName}
+                              autoFocus
+                              maxLength={80}
+                              onInput={(event) =>
+                                 setCollectionName((event.target as HTMLInputElement).value)
+                              }
+                           />
+                        </div>
+                        <DialogFooter>
+                           <Button type='submit'>Create</Button>
+                        </DialogFooter>
+                     </form>
+                  </DialogContent>
+               </Dialog>
+
+               <Dialog
+                  open={open}
+                  onOpenChange={setOpen}
+               >
+                  <DialogTrigger render={<Button />}>New deck</DialogTrigger>
+                  <DialogContent>
+                     <form onSubmit={submitDeck}>
+                        <DialogHeader>
+                           <DialogTitle>Create a deck</DialogTitle>
+                           <DialogDescription>
+                              Give it a title and, optionally, a collection.
+                           </DialogDescription>
+                        </DialogHeader>
+                        <div className='flex flex-col gap-3 py-3'>
+                           <div className='flex flex-col gap-1.5'>
+                              <Label htmlFor='deck-title'>Title</Label>
+                              <Input
+                                 id='deck-title'
+                                 value={title}
+                                 autoFocus
+                                 onInput={(event) =>
+                                    setTitle((event.target as HTMLInputElement).value)
+                                 }
+                              />
+                           </div>
+                           <div className='flex flex-col gap-1.5'>
+                              <Label htmlFor='deck-collection'>Collection</Label>
+                              <Select
+                                 id='deck-collection'
+                                 value={deckCollectionId}
+                                 onValueChange={setDeckCollectionId}
+                                 items={[
+                                    { value: '', label: 'No collection' },
+                                    ...collections.map((collection) => ({
+                                       value: collection.id,
+                                       label: collection.name,
+                                    })),
+                                 ]}
+                              />
+                           </div>
+                        </div>
+                        <DialogFooter>
+                           <Button type='submit'>Create</Button>
+                        </DialogFooter>
+                     </form>
+                  </DialogContent>
+               </Dialog>
+            </div>
          </div>
+
+         {collections.length > 0 && (
+            <div className='flex flex-wrap items-center gap-1.5'>
+               <FilterChip
+                  active={filter.kind === 'all'}
+                  onClick={() => load(ALL)}
+               >
+                  All decks
+               </FilterChip>
+               <FilterChip
+                  active={filter.kind === 'unfiled'}
+                  onClick={() => load({ kind: 'unfiled' })}
+               >
+                  No collection
+               </FilterChip>
+               {collections.map((collection) => (
+                  <span
+                     key={collection.id}
+                     className='inline-flex items-center'
+                  >
+                     <FilterChip
+                        active={filter.kind === 'collection' && filter.id === collection.id}
+                        onClick={() => load({ kind: 'collection', id: collection.id })}
+                     >
+                        {collection.name} · {collection.deckCount}
+                     </FilterChip>
+                     <button
+                        type='button'
+                        title={`Delete ${collection.name}`}
+                        aria-label={`Delete ${collection.name}`}
+                        className='-ml-1 rounded-full px-1 text-xs text-muted-foreground hover:text-destructive'
+                        onClick={() => void removeCollection(collection)}
+                     >
+                        ×
+                     </button>
+                  </span>
+               ))}
+            </div>
+         )}
+
+         {activeCollection && (
+            <p className='text-xs text-muted-foreground'>
+               Showing decks in “{activeCollection.name}”.
+            </p>
+         )}
 
          {status === 'auth' && (
             <Alert variant='info'>
@@ -185,8 +401,14 @@ export function DeckLibrary() {
          ) : status === 'ready' && decks.length === 0 ? (
             <Empty>
                <EmptyHeader>
-                  <EmptyTitle>No decks yet</EmptyTitle>
-                  <EmptyDescription>Create your first deck to start studying.</EmptyDescription>
+                  <EmptyTitle>
+                     {filter.kind === 'all' ? 'No decks yet' : 'Nothing filed here yet'}
+                  </EmptyTitle>
+                  <EmptyDescription>
+                     {filter.kind === 'all'
+                        ? 'Create your first deck to start studying.'
+                        : 'Create a deck or move an existing one into this collection.'}
+                  </EmptyDescription>
                </EmptyHeader>
                <EmptyContent>
                   <Button onClick={() => setOpen(true)}>New deck</Button>
@@ -194,55 +416,70 @@ export function DeckLibrary() {
             </Empty>
          ) : status === 'ready' ? (
             <div className='grid gap-4 sm:grid-cols-2'>
-               {decks.map((deck) => (
-                  <Card
-                     key={deck.id}
-                     className='relative overflow-visible transition-colors hover:bg-muted/40'
-                     onContextMenu={(event) => {
-                        event.preventDefault();
-                        setMenuId(deck.id);
-                     }}
-                  >
-                     <a
-                        href={`/decks/${deck.id}`}
-                        className='absolute inset-0 rounded-lg'
-                        aria-label={`Open deck ${deck.title}`}
-                     />
-                     <CardHeader>
-                        <CardTitle>{deck.title}</CardTitle>
-                        <CardDescription>{deck.description || 'No description'}</CardDescription>
-                        <CardAction>
-                           <div
-                              className='relative z-10'
-                              onClick={(event) => event.stopPropagation()}
-                           >
-                              <Button
-                                 variant='ghost'
-                                 size='icon-sm'
-                                 aria-label='Deck actions'
-                                 onClick={(event) => {
-                                    event.preventDefault();
-                                    setMenuId(menuId === deck.id ? null : deck.id);
-                                 }}
+               {decks.map((deck) => {
+                  const full = deck.cardCount >= MAX_CARDS_PER_DECK;
+                  return (
+                     <Card
+                        key={deck.id}
+                        className='relative overflow-visible transition-colors hover:bg-muted/40'
+                        onContextMenu={(event) => {
+                           event.preventDefault();
+                           setMenuId(deck.id);
+                        }}
+                     >
+                        <a
+                           href={`/decks/${deck.id}`}
+                           className='absolute inset-0 rounded-lg'
+                           aria-label={`Open deck ${deck.title}`}
+                        />
+                        <CardHeader>
+                           <CardTitle>{deck.title}</CardTitle>
+                           <CardDescription>{deck.description || 'No description'}</CardDescription>
+                           <CardAction>
+                              <div
+                                 className='relative z-10'
+                                 onClick={(event) => event.stopPropagation()}
                               >
-                                 ⋯
-                              </Button>
-                              {menuId === deck.id && (
-                                 <div className='absolute right-0 top-full mt-1 min-w-40 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'>
-                                    <DeckMenuItems
-                                       deck={deck}
-                                       onClose={() => setMenuId(null)}
-                                    />
-                                 </div>
-                              )}
-                           </div>
-                        </CardAction>
-                     </CardHeader>
-                     <CardContent>
-                        <Badge variant='secondary'>{deck.cardCount} cards</Badge>
-                     </CardContent>
-                  </Card>
-               ))}
+                                 <Button
+                                    variant='ghost'
+                                    size='icon-sm'
+                                    aria-label='Deck actions'
+                                    onClick={(event) => {
+                                       event.preventDefault();
+                                       setMenuId(menuId === deck.id ? null : deck.id);
+                                    }}
+                                 >
+                                    ⋯
+                                 </Button>
+                                 {menuId === deck.id && (
+                                    <div className='absolute right-0 top-full mt-1 min-w-40 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'>
+                                       <DeckMenuItems
+                                          deck={deck}
+                                          collections={collections}
+                                          onClose={() => setMenuId(null)}
+                                          onMove={(item, collectionId) =>
+                                             void moveDeck(item, collectionId)
+                                          }
+                                       />
+                                    </div>
+                                 )}
+                              </div>
+                           </CardAction>
+                        </CardHeader>
+                        <CardContent className='flex flex-wrap gap-2'>
+                           <Badge variant='secondary'>
+                              {deck.cardCount} / {MAX_CARDS_PER_DECK} cards
+                           </Badge>
+                           {deck.collectionId && (
+                              <Badge variant='outline'>
+                                 {collectionNameById.get(deck.collectionId) ?? 'Collection'}
+                              </Badge>
+                           )}
+                           {full && <Badge variant='destructive'>Full</Badge>}
+                        </CardContent>
+                     </Card>
+                  );
+               })}
             </div>
          ) : null}
 
@@ -259,5 +496,30 @@ export function DeckLibrary() {
             </div>
          )}
       </section>
+   );
+}
+
+function FilterChip({
+   active,
+   onClick,
+   children,
+}: {
+   active: boolean;
+   onClick: () => void;
+   children: ComponentChildren;
+}) {
+   return (
+      <button
+         type='button'
+         onClick={onClick}
+         className={cn(
+            'rounded-full border px-3 py-1 text-xs transition-colors',
+            active
+               ? 'border-primary bg-primary text-primary-foreground'
+               : 'border-border hover:bg-muted',
+         )}
+      >
+         {children}
+      </button>
    );
 }

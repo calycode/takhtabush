@@ -4,33 +4,41 @@ import { cn } from '@caly/ui/lib/utils';
 import { listTags } from '../lib/api/tags';
 
 const MAX_TAGS = 20;
-let cachedTags: string[] | null = null;
+const tagCache = new Map<string, string[]>();
 
 /**
- * Tag combobox: type to search the tags already used across the account, or
- * press Enter to add a new one. Existing tags are surfaced first so the set
- * stays tidy.
+ * Tag combobox: type to search tags already used in this deck (or the whole
+ * account when no deck is known), or press Enter to add a new one. The API
+ * call is deck-scoped so it stays bounded by the deck's card cap.
  */
 export function TagsField({
    value,
    onChange,
+   deckId,
 }: {
    value: string[];
    onChange: (tags: string[]) => void;
+   deckId?: string;
 }) {
-   const [all, setAll] = useState<string[]>(cachedTags ?? []);
+   const cacheKey = deckId ?? '*';
+   const [all, setAll] = useState<string[]>(tagCache.get(cacheKey) ?? []);
    const [query, setQuery] = useState('');
    const [focused, setFocused] = useState(false);
 
    useEffect(() => {
-      if (cachedTags) return;
-      listTags()
+      const cached = tagCache.get(cacheKey);
+      if (cached) {
+         setAll(cached);
+         return;
+      }
+      listTags(deckId)
          .then((result) => {
-            cachedTags = result.data.map((tag) => tag.name);
-            setAll(cachedTags);
+            const names = result.data.map((tag) => tag.name);
+            tagCache.set(cacheKey, names);
+            setAll(names);
          })
          .catch(() => undefined);
-   }, []);
+   }, [cacheKey, deckId]);
 
    const selected = useMemo(() => new Set(value), [value]);
    const matches = useMemo(() => {

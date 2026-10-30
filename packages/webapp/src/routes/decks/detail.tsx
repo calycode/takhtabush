@@ -39,7 +39,7 @@ import {
 } from '@caly/ui/components/table';
 import { Skeleton } from '@caly/ui/components/skeleton';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
-import { markdownToText, type Card as CardType, type Deck } from '@caly/shared';
+import { markdownToText, MAX_CARDS_PER_DECK, type Card as CardType, type Deck } from '@caly/shared';
 import { Markdown } from '@caly/ui/markdown';
 import { ApiError } from '../../lib/api/client';
 import {
@@ -211,6 +211,7 @@ export function DeckDetail({ id }: { id?: string }) {
    }
 
    const isEmpty = deck.cardCount === 0;
+   const atCapacity = deck.cardCount >= MAX_CARDS_PER_DECK;
 
    return (
       <section className='flex flex-col gap-6'>
@@ -221,7 +222,10 @@ export function DeckDetail({ id }: { id?: string }) {
                   {deck.description || 'No description'}
                </p>
                <div className='flex gap-2'>
-                  <Badge variant='secondary'>{deck.cardCount} cards</Badge>
+                  <Badge variant='secondary'>
+                     {deck.cardCount} / {MAX_CARDS_PER_DECK} cards
+                  </Badge>
+                  {atCapacity && <Badge variant='destructive'>Deck full</Badge>}
                </div>
             </div>
 
@@ -236,13 +240,27 @@ export function DeckDetail({ id }: { id?: string }) {
                   open={addOpen}
                   onOpenChange={setAddOpen}
                >
-                  <DialogTrigger render={<Button variant='outline' />}>Add card</DialogTrigger>
+                  <DialogTrigger
+                     render={
+                        <Button
+                           variant='outline'
+                           disabled={atCapacity}
+                        />
+                     }
+                  >
+                     Add card
+                  </DialogTrigger>
                   <DialogContent className='sm:max-w-lg'>
                      <DialogHeader>
                         <DialogTitle>Add a card</DialogTitle>
-                        <DialogDescription>Pick a type and fill in the fields.</DialogDescription>
+                        <DialogDescription>
+                           {atCapacity
+                              ? `This deck is at its ${MAX_CARDS_PER_DECK}-card limit. Delete a card first.`
+                              : `Pick a type and fill in the fields. A deck holds up to ${MAX_CARDS_PER_DECK} cards.`}
+                        </DialogDescription>
                      </DialogHeader>
                      <CardForm
+                        deckId={deck.id}
                         submitLabel='Add card'
                         busy={busy}
                         onSubmit={(draft) => void addCard(draft)}
@@ -285,6 +303,15 @@ export function DeckDetail({ id }: { id?: string }) {
          {error && (
             <Alert variant='destructive'>
                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+         )}
+
+         {atCapacity && (
+            <Alert variant='info'>
+               <AlertDescription>
+                  This deck has reached its {MAX_CARDS_PER_DECK}-card limit. Delete cards or split
+                  the deck into another collection to add more.
+               </AlertDescription>
             </Alert>
          )}
 

@@ -7,7 +7,7 @@ tags derived from its cards. The deck page shows a searchable table with the
 front, answer, type, tags, and a menu for each card.
 
 Deck actions include **Study**, **Add card**, and **Export**. The deck menu also
-has rename, delete, and folder actions where available.
+has edit, collection, export, and delete actions.
 
 ## Card types
 
@@ -33,14 +33,20 @@ Definitions and descriptions are Markdown. You can use:
 The deck table and study screen render the same Markdown. The search and
 compact card summaries flatten it to plain text.
 
-## Tags and folders
+## Tags and collections
 
 - Tags are free-form labels on a card. Use the tag picker or type a new tag.
 - The deck page has a tag filter and shows tag counts.
-- Folders group decks on the dashboard. A folder can have a parent folder.
+- Collections group decks in the library. A deck belongs to at most one
+  collection (or none), and a collection has no sub-collections.
+- Create a collection from the deck library, then move decks into it from the
+  deck's ⋯ menu or from the deck settings page. Use the filter chips to show
+  **All decks**, **No collection**, or one collection.
+- Deleting a collection keeps its decks; they simply become unfiled.
 
-Tags are the easiest way to build a study subset: filter by a tag, then use the
-study launcher.
+Tags describe card content and are the easiest way to build a study subset:
+filter by a tag, then use the study launcher. Collections describe where a deck
+lives, so they never need to move a card or change a tag.
 
 ## Editing, deleting, and suspending
 
@@ -69,3 +75,10 @@ formats with a header row, a delimiter choice, and a tag separator. See
 
 The current release has fixed daily study limits: **20 new cards** and
 **200 reviews** per day. These are not yet configurable in the UI.
+
+A deck holds at most **500 cards**, a single import is limited to **500 rows**,
+and a card has at most **20 tags** (40 characters each). A collection holds at
+most **200 decks**, and an account at most **100 collections**. The deck page
+shows the current card count against the cap; when a deck is full, delete cards
+or split it into another deck before adding more. See
+[Import and export](import-export.md) for the import limit.

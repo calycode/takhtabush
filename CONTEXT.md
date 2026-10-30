@@ -18,6 +18,7 @@ studies, and analyzes flashcard decks.
 
 - Single tenant by default; retain `owner_id` for a future multi-tenant path.
 - Review events are append-only; learning state is rebuildable.
+- Decks are bounded (500 cards) and organised by flat collections; the limits live in `@caly/shared` and every write path enforces them.
 - No realtime collaboration, marketplace, billing, or offline sync in V1.
 - Keep the Worker count at one; keep MCP free of direct D1/R2 access.
 

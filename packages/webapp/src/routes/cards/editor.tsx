@@ -97,6 +97,7 @@ export function CardEditor({ id, cardId }: { id?: string; cardId?: string }) {
             </CardHeader>
             <CardContent className='flex flex-col gap-3'>
                <CardForm
+                  deckId={card.deckId}
                   initial={{
                      type: card.type,
                      front: card.front,

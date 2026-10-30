@@ -1,4 +1,5 @@
 import type { AppEnv } from '../env';
+import { chunk, D1_MAX_BOUND_PARAMS, placeholders } from '../lib/d1';
 
 function changes(result: { meta?: { changes?: number } }): number {
    return result.meta?.changes ?? 0;
@@ -96,8 +97,13 @@ export async function selectOrphanedMedia(
 /** Delete media rows by id (R2 objects are removed separately). */
 export async function deleteMediaRows(env: AppEnv, ids: string[]): Promise<number> {
    let deleted = 0;
-   for (const id of ids) {
-      const result = await env.DB.prepare('DELETE FROM media_objects WHERE id = ?').bind(id).run();
+   for (const batch of chunk(ids, D1_MAX_BOUND_PARAMS - 1)) {
+      if (batch.length === 0) continue;
+      const result = await env.DB.prepare(
+         `DELETE FROM media_objects WHERE id IN (${placeholders(batch.length)})`,
+      )
+         .bind(...batch)
+         .run();
       deleted += changes(result);
    }
    return deleted;

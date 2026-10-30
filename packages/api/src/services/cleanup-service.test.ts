@@ -13,11 +13,15 @@ class CleanupDb {
       const rows = this.orphans;
       const deletes = this.deletes;
       return {
-         bind(..._params: unknown[]) {
+         bind(...params: unknown[]) {
             return {
                async run() {
                   deletes.push(sql);
-                  return { meta: { changes: sql.startsWith('DELETE FROM media_objects') ? 1 : 3 } };
+                  return {
+                     meta: {
+                        changes: sql.startsWith('DELETE FROM media_objects') ? params.length : 3,
+                     },
+                  };
                },
                async all() {
                   return { results: sql.includes('SELECT m.id') ? rows : [] };

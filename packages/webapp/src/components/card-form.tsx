@@ -66,12 +66,14 @@ function validate(
 
 export function CardForm({
    initial,
+   deckId,
    typeLocked = false,
    submitLabel = 'Save',
    busy = false,
    onSubmit,
 }: {
    initial?: InitialCard;
+   deckId?: string;
    typeLocked?: boolean;
    submitLabel?: string;
    busy?: boolean;
@@ -249,6 +251,7 @@ export function CardForm({
             <TagsField
                value={tags}
                onChange={setTags}
+               deckId={deckId}
             />
          </div>
 

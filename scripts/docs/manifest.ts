@@ -198,6 +198,14 @@ export const DOC_ENTRIES: DocEntry[] = [
       order: 41,
       segments: ['developer', 'agent-feedback'],
    },
+   {
+      section: 'Developer guide',
+      path: 'developer/d1-cost-model',
+      title: 'D1 cost model',
+      file: 'developer/d1-cost-model.md',
+      order: 42,
+      segments: ['developer', 'd1-cost-model'],
+   },
 
    // Reference
    {

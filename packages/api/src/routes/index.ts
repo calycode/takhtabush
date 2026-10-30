@@ -5,8 +5,8 @@ import { aiRoutes } from './ai';
 import { apiKeyRoutes } from './api-keys';
 import { authRoutes } from './auth';
 import { cardRoutes } from './cards';
+import { collectionRoutes } from './collections';
 import { deckRoutes } from './decks';
-import { folderRoutes } from './folders';
 import { healthRoutes } from './health';
 import { mediaRoutes } from './media';
 import { meRoutes } from './me';
@@ -29,7 +29,7 @@ export function registerRoutes(app: Hono<AppBindings>): Hono<AppBindings> {
    protectedApi.route('/sessions', sessionRoutes);
    protectedApi.route('/decks', deckRoutes);
    protectedApi.route('/cards', cardRoutes);
-   protectedApi.route('/folders', folderRoutes);
+   protectedApi.route('/collections', collectionRoutes);
    protectedApi.route('/tags', tagRoutes);
    protectedApi.route('/media', mediaRoutes);
    protectedApi.route('/study', studyRoutes);

@@ -25,6 +25,7 @@ import {
    abandonStudySession,
    appendReviewEvent,
    completeStudySession,
+   countReviewedCards,
    createStudySession,
    getDeckStudySummary,
    getLearningState,
@@ -260,7 +261,7 @@ export async function recordReview(
       ? mapLearningState(existingRow)
       : newLearningState(userId, card.id, new Date());
    const next = scheduleReview(current, input.response, new Date());
-   await upsertLearningState(env, next);
+   await upsertLearningState(env, next, card.deckId);
 
    const event = await appendReviewEvent(env, {
       sessionId,
@@ -272,9 +273,9 @@ export async function recordReview(
       schedulerState: next.state,
    });
 
-   const reviewed = await listReviewedCardIds(env, sessionId);
+   const reviewed = await countReviewedCards(env, sessionId);
    const planned = JSON.parse(String(row.planned_card_ids_json ?? '[]')) as string[];
-   const remaining = planned.filter((id) => !reviewed.has(id)).length;
+   const remaining = Math.max(0, planned.length - reviewed);
 
    return { event, state: next, remaining };
 }
