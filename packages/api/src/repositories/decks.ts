@@ -2,6 +2,7 @@ import { encodeCursor, decodeCursor } from '@caly/shared';
 import { newId, nowIso } from '@caly/worker-kit';
 import type { Deck } from '@caly/shared';
 import type { AppEnv } from '../env';
+import { changes } from '../lib/d1';
 import { mapDeck } from '../lib/map';
 
 export function getDeckRow(env: AppEnv, id: string): Promise<Record<string, unknown> | null> {
@@ -13,11 +14,17 @@ export function getDeckRow(env: AppEnv, id: string): Promise<Record<string, unkn
 export async function listDecks(
    env: AppEnv,
    ownerId: string,
-   opts: { limit: number; cursor?: string },
+   opts: { limit: number; cursor?: string; collectionId?: string; unfiled?: boolean },
 ): Promise<{ items: Deck[]; nextCursor: string | null }> {
    const decoded = opts.cursor ? decodeCursor(opts.cursor) : null;
    const params: unknown[] = [ownerId];
    let sql = 'SELECT * FROM decks WHERE owner_id = ? AND deleted_at IS NULL';
+   if (opts.collectionId) {
+      sql += ' AND collection_id = ?';
+      params.push(opts.collectionId);
+   } else if (opts.unfiled) {
+      sql += ' AND collection_id IS NULL';
+   }
    if (decoded) {
       sql += ' AND (updated_at < ? OR (updated_at = ? AND id < ?))';
       params.push(decoded.updatedAt, decoded.updatedAt, decoded.id);
@@ -40,12 +47,17 @@ export async function listDecks(
 
 export async function insertDeck(
    env: AppEnv,
-   input: { ownerId: string; title: string; description?: string; folderId?: string },
+   input: {
+      ownerId: string;
+      title: string;
+      description?: string;
+      collectionId?: string;
+   },
 ): Promise<Deck> {
    const id = newId('deck');
    const now = nowIso();
    await env.DB.prepare(
-      `INSERT INTO decks (id, owner_id, title, description, folder_id, card_count, created_at, updated_at, deleted_at)
+      `INSERT INTO decks (id, owner_id, title, description, collection_id, card_count, created_at, updated_at, deleted_at)
        VALUES (?, ?, ?, ?, ?, 0, ?, ?, NULL)`,
    )
       .bind(
@@ -53,7 +65,7 @@ export async function insertDeck(
          input.ownerId,
          input.title,
          input.description ?? null,
-         input.folderId ?? null,
+         input.collectionId ?? null,
          now,
          now,
       )
@@ -69,7 +81,7 @@ export async function updateDeck(
    patch: {
       title?: string;
       description?: string | null;
-      folderId?: string | null;
+      collectionId?: string | null;
    },
 ): Promise<Deck | null> {
    const sets: string[] = [];
@@ -82,9 +94,9 @@ export async function updateDeck(
       sets.push('description = ?');
       params.push(patch.description);
    }
-   if (patch.folderId !== undefined) {
-      sets.push('folder_id = ?');
-      params.push(patch.folderId);
+   if (patch.collectionId !== undefined) {
+      sets.push('collection_id = ?');
+      params.push(patch.collectionId);
    }
    if (sets.length > 0) {
       sets.push('updated_at = ?');
@@ -109,11 +121,65 @@ export async function softDeleteDeck(env: AppEnv, id: string): Promise<void> {
       .run();
 }
 
-/** Recompute `decks.card_count` from live cards. */
-export async function recalcCardCount(env: AppEnv, deckId: string): Promise<void> {
-   await env.DB.prepare(
-      `UPDATE decks SET card_count = (SELECT COUNT(*) FROM cards WHERE deck_id = ? AND deleted_at IS NULL) WHERE id = ?`,
+/**
+ * Reserve `count` live-card slots on a deck in one conditional UPDATE. Returns
+ * false when the deck is full (or the reservation would cross the cap), which
+ * is the only authoritative card-count check: `decks.card_count` is the
+ * denormalized counter, and D1 serializes writes per database, so this cannot
+ * oversell a deck. Callers release the slots if the following insert fails.
+ */
+export async function reserveCardSlots(
+   env: AppEnv,
+   deckId: string,
+   count: number,
+   limit: number,
+): Promise<boolean> {
+   if (count <= 0) return true;
+   const result = await env.DB.prepare(
+      `UPDATE decks SET card_count = card_count + ?, updated_at = ?
+        WHERE id = ? AND deleted_at IS NULL AND card_count + ? <= ?`,
    )
-      .bind(deckId, deckId)
+      .bind(count, nowIso(), deckId, count, limit)
+      .run();
+   return changes(result) > 0;
+}
+
+/** Give reserved slots back after a failed insert. Never goes below zero. */
+export async function releaseCardSlots(env: AppEnv, deckId: string, count: number): Promise<void> {
+   if (count <= 0) return;
+   await env.DB.prepare(
+      `UPDATE decks SET card_count = MAX(card_count - ?, 0), updated_at = ? WHERE id = ?`,
+   )
+      .bind(count, nowIso(), deckId)
+      .run();
+}
+
+/** Live decks in a collection, used to enforce the per-collection cap. */
+export async function countDecksInCollection(
+   env: AppEnv,
+   ownerId: string,
+   collectionId: string,
+): Promise<number> {
+   const row = await env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM decks
+        WHERE owner_id = ? AND collection_id = ? AND deleted_at IS NULL`,
+   )
+      .bind(ownerId, collectionId)
+      .first<{ count: number }>();
+   return Number(row?.count ?? 0);
+}
+
+/** Detach every deck from a collection (collection delete keeps decks). */
+export async function detachDecksFromCollection(
+   env: AppEnv,
+   ownerId: string,
+   collectionId: string,
+): Promise<void> {
+   const now = nowIso();
+   await env.DB.prepare(
+      `UPDATE decks SET collection_id = NULL, updated_at = ?
+        WHERE owner_id = ? AND collection_id = ? AND deleted_at IS NULL`,
+   )
+      .bind(now, ownerId, collectionId)
       .run();
 }

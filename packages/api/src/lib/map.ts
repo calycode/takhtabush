@@ -2,7 +2,6 @@ import type {
    Card,
    CardRevision,
    Deck,
-   Folder,
    MediaObject,
    StudySession,
    ReviewEvent,
@@ -20,7 +19,7 @@ export function mapDeck(row: Record<string, unknown>): Deck {
       ownerId: String(row.owner_id),
       title: String(row.title),
       description: (row.description as string | null) ?? null,
-      folderId: (row.folder_id as string | null) ?? null,
+      collectionId: (row.collection_id as string | null) ?? null,
       cardCount: Number(row.card_count ?? 0),
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
@@ -51,17 +50,6 @@ export function mapCard(row: Record<string, unknown>): Card {
       source: (row.source as Card['source']) ?? 'manual',
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
-      deletedAt: (row.deleted_at as string | null) ?? null,
-   };
-}
-
-export function mapFolder(row: Record<string, unknown>): Folder {
-   return {
-      id: String(row.id),
-      ownerId: String(row.owner_id),
-      name: String(row.name),
-      parentId: (row.parent_id as string | null) ?? null,
-      createdAt: String(row.created_at),
       deletedAt: (row.deleted_at as string | null) ?? null,
    };
 }

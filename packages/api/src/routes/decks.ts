@@ -5,6 +5,7 @@ import {
    cursorQuerySchema,
    exportFormatSchema,
    importDeckInputSchema,
+   listDecksQuerySchema,
    updateDeckInputSchema,
 } from '@caly/shared';
 import { ok } from '@caly/worker-kit';
@@ -28,8 +29,13 @@ function pageMeta(nextCursor: string | null) {
 
 export const deckRoutes = new Hono<AppBindings>()
    .get('/', async (c) => {
-      const query = parse(cursorQuerySchema, c.req.query());
-      const { items, nextCursor } = await listDecksForUser(c.env, c.get('user')!.id, query);
+      const query = parse(listDecksQuerySchema, c.req.query());
+      const { items, nextCursor } = await listDecksForUser(c.env, c.get('user')!.id, {
+         limit: query.limit,
+         cursor: query.cursor,
+         collectionId: query.collectionId,
+         unfiled: query.unfiled === 'true',
+      });
       return c.json({ data: items, meta: pageMeta(nextCursor) });
    })
    .post('/', async (c) => {

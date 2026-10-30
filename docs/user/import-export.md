@@ -45,7 +45,12 @@ el libro,book,spanish;basics
 
 ## What happens on import
 
-- Rows are capped per import.
+- Rows are capped per import: **500 rows** and **1 MB** per request.
+- A deck holds at most **500 cards**. If the import would push the deck past the
+  cap, the whole import is rejected and nothing is written; split the file across
+  decks or delete cards first.
+- Repeated fronts in one file are merged: the last row wins, and the import
+  counts each distinct card once.
 - Cards are deduplicated by **front**: an existing card with the same front is
   updated instead of duplicated.
 - Empty rows and malformed rows are reported instead of silently dropped.

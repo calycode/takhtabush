@@ -13,8 +13,10 @@ import {
 } from '@caly/ui/components/card';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import { Skeleton } from '@caly/ui/components/skeleton';
-import type { Deck } from '@caly/shared';
+import { Select } from '@caly/ui/components/select';
+import type { Collection, Deck } from '@caly/shared';
 import { ApiError } from '../../lib/api/client';
+import { listCollections } from '../../lib/api/collections';
 import { deleteDeck, getDeck, updateDeck } from '../../lib/api/decks';
 
 export function DeckEdit({ id }: { id?: string }) {
@@ -23,15 +25,21 @@ export function DeckEdit({ id }: { id?: string }) {
    const [deck, setDeck] = useState<Deck | null>(null);
    const [title, setTitle] = useState('');
    const [description, setDescription] = useState('');
+   const [collectionId, setCollectionId] = useState('');
+   const [collections, setCollections] = useState<Collection[]>([]);
    const [error, setError] = useState<string | null>(null);
    const [saved, setSaved] = useState(false);
 
    useEffect(() => {
+      listCollections()
+         .then((result) => setCollections(result.data))
+         .catch(() => undefined);
       getDeck(deckId)
          .then((result) => {
             setDeck(result.data);
             setTitle(result.data.title);
             setDescription(result.data.description ?? '');
+            setCollectionId(result.data.collectionId ?? '');
          })
          .catch((cause) =>
             setError(cause instanceof ApiError ? cause.message : 'Failed to load deck'),
@@ -45,6 +53,7 @@ export function DeckEdit({ id }: { id?: string }) {
          const result = await updateDeck(deckId, {
             title,
             description: description || null,
+            collectionId: collectionId || null,
          });
          setDeck(result.data);
          setSaved(true);
@@ -105,6 +114,21 @@ export function DeckEdit({ id }: { id?: string }) {
                         onInput={(event) =>
                            setDescription((event.target as HTMLTextAreaElement).value)
                         }
+                     />
+                  </div>
+                  <div className='flex flex-col gap-1.5'>
+                     <Label htmlFor='collection'>Collection</Label>
+                     <Select
+                        id='collection'
+                        value={collectionId}
+                        onValueChange={setCollectionId}
+                        items={[
+                           { value: '', label: 'No collection' },
+                           ...collections.map((collection) => ({
+                              value: collection.id,
+                              label: collection.name,
+                           })),
+                        ]}
                      />
                   </div>
                   {saved && (

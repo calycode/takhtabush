@@ -283,6 +283,35 @@ describe('mcp server', () => {
       expect(body.result.content[0]?.text).toContain('not found');
    });
 
+   it('keeps a service limit code in the model-visible tool error', async () => {
+      const services = stubServices();
+      vi.mocked(services.createCards).mockRejectedValue({
+         code: 'DECK_CARD_LIMIT_EXCEEDED',
+         message: 'A deck can hold at most 500 cards.',
+      });
+
+      const res = await handleMcpRequest(
+         post({
+            jsonrpc: '2.0',
+            id: 15,
+            method: 'tools/call',
+            params: {
+               name: 'create_cards',
+               arguments: {
+                  deckId: 'deck_1',
+                  cards: [{ type: 'term_definition', front: 'a', back: 'b' }],
+               },
+            },
+         }),
+         { ...ctx, services, scopes: [...ctx.scopes] },
+      );
+      const body = (await res.json()) as {
+         result: { isError: boolean; content: Array<{ text: string }> };
+      };
+      expect(body.result.isError).toBe(true);
+      expect(body.result.content[0]?.text).toContain('DECK_CARD_LIMIT_EXCEEDED');
+   });
+
    it('rejects a tool call missing its scope', async () => {
       const res = await handleMcpRequest(
          post({

@@ -109,6 +109,15 @@ class FakeStatement {
             (s) => s.user_id === userId && !s.revoked_at && String(s.expires_at) > now,
          );
       }
+      if (sql.includes('JOIN users')) {
+         const [hash, now] = p as [string, string];
+         const session = db.sessions.find(
+            (s) => s.token_hash === hash && !s.revoked_at && String(s.expires_at) > now,
+         );
+         if (!session) return [];
+         const user = db.users.find((u) => u.id === session.user_id);
+         return user ? [{ session_id: session.id, ...user }] : [];
+      }
       if (sql.includes('FROM sessions')) {
          const [hash, now] = p as [string, string];
          return db.sessions.filter(

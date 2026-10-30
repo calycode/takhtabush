@@ -16,3 +16,7 @@ export const unauthorized = (message = 'Authentication required') =>
    new AppError('UNAUTHORIZED', message, 401);
 export const forbidden = (message = 'Not allowed') => new AppError('FORBIDDEN', message, 403);
 export const conflict = (message = 'Conflict') => new AppError('CONFLICT', message, 409);
+
+/** A stable-code 409 for a bounded-work limit (SPEC §4.4). */
+export const limitExceeded = (code: string, message: string, details?: unknown) =>
+   new AppError(code, message, 409, details);

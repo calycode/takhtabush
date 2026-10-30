@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_IMPORT_BYTES, MAX_TAG_LENGTH, MAX_TAGS_PER_CARD } from '../domain/limits';
 import { idSchema, isoDateSchema } from './common';
 import { DELIMITER_CHOICES, TAG_SEPARATORS } from './import';
 
@@ -18,7 +19,7 @@ export type CardStatus = z.infer<typeof cardStatusSchema>;
 export const cardSourceSchema = z.enum(['manual', 'import', 'ai']);
 export type CardSource = z.infer<typeof cardSourceSchema>;
 
-export const tagSchema = z.string().min(1).max(40);
+export const tagSchema = z.string().min(1).max(MAX_TAG_LENGTH);
 
 export const cardSchema = z.object({
    id: idSchema,
@@ -51,7 +52,7 @@ export const createCardInputSchema = z
       clozeText: z.string().max(5000).optional(),
       choices: z.array(z.string().max(500)).max(8).optional(),
       correctChoice: z.number().int().min(0).max(7).optional(),
-      tags: z.array(tagSchema).max(20).default([]),
+      tags: z.array(tagSchema).max(MAX_TAGS_PER_CARD).default([]),
       imageMediaId: idSchema.optional(),
       audioMediaId: idSchema.optional(),
       status: cardStatusSchema.default('active'),
@@ -103,7 +104,7 @@ export const updateCardInputSchema = z.object({
    clozeText: z.string().max(5000).nullable().optional(),
    choices: z.array(z.string().max(500)).max(8).nullable().optional(),
    correctChoice: z.number().int().min(0).max(7).nullable().optional(),
-   tags: z.array(tagSchema).max(20).optional(),
+   tags: z.array(tagSchema).max(MAX_TAGS_PER_CARD).optional(),
    imageMediaId: idSchema.nullable().optional(),
    audioMediaId: idSchema.nullable().optional(),
    status: cardStatusSchema.optional(),
@@ -130,9 +131,9 @@ export type ImportFormat = z.infer<typeof importFormatSchema>;
 
 export const importDeckInputSchema = z.object({
    format: importFormatSchema,
-   content: z.string().min(1),
+   content: z.string().min(1).max(MAX_IMPORT_BYTES),
    hasHeader: z.boolean().default(false),
-   tags: z.array(tagSchema).max(20).default([]),
+   tags: z.array(tagSchema).max(MAX_TAGS_PER_CARD).default([]),
    /** [R5] Column delimiter for CSV; `auto` infers it from the content. */
    delimiter: z.enum(DELIMITER_CHOICES).optional(),
    /** [R5] How the tags column is split; `none` keeps the whole field as one tag. */

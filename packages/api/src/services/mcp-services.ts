@@ -11,11 +11,11 @@ import type {
 import { nowIso } from '@caly/worker-kit';
 import type { AppEnv } from '../env';
 import { mapCard, mapDeck } from '../lib/map';
-import { getCardRow, searchCardsPage } from '../repositories/cards';
+import { getCardRow, getCardRowsByIds, searchCardsPage } from '../repositories/cards';
 import { getDeckRow } from '../repositories/decks';
 import { deckDueCounts, listReviewedCardIds } from '../repositories/study';
 import { insertAuditEvent } from '../repositories/audit';
-import { createCard, getOwnedCard, patchCard, removeCard } from './card-service';
+import { createCards, getOwnedCard, patchCard, removeCard } from './card-service';
 import { createDeck, getOwnedDeck, listDecksForUser } from './deck-service';
 import { importIntoDeck } from './import-service';
 import { readStudyWidgetResource } from './mcp-apps-service';
@@ -57,11 +57,17 @@ export function buildMcpServices(
             limit: input.limit,
             cursor: input.cursor,
          });
-         const dueCounts = await deckDueCounts(env, user.id, nowIso());
+         const dueCounts = await deckDueCounts(
+            env,
+            user.id,
+            nowIso(),
+            items.map((deck) => deck.id),
+         );
          const summaries: DeckSummary[] = items.map((deck) => ({
             id: deck.id,
             title: deck.title,
             description: deck.description ? deck.description.slice(0, 160) : null,
+            collectionId: deck.collectionId,
             cardCount: deck.cardCount,
             dueCount: dueCounts[deck.id] ?? 0,
             updatedAt: deck.updatedAt,
@@ -123,8 +129,7 @@ export function buildMcpServices(
 
       createDeck: (input) => createDeck(env, user.id, input),
 
-      createCards: (input) =>
-         Promise.all(input.cards.map((card) => createCard(env, user.id, input.deckId, card))),
+      createCards: (input) => createCards(env, user.id, input.deckId, input.cards),
 
       importDeck: (input) =>
          importIntoDeck(env, user.id, input.deckId, {
@@ -174,10 +179,13 @@ export function buildMcpServices(
             const session = await getSession(env, user.id, sessionId);
             const deck = await getOwnedDeck(env, user.id, session.deckId);
             const reviewed = await listReviewedCardIds(env, sessionId);
+            // One batched read per 90 planned ids instead of one query per card.
+            const rows = await getCardRowsByIds(env, user.id, session.plannedCardIds);
+            const byId = new Map(rows.map((row) => [String(row.id), row]));
             const cards: StudyWidgetCard[] = [];
             for (const cardId of session.plannedCardIds) {
-               const row = await getCardRow(env, cardId);
-               if (!row || String(row.owner_id) !== user.id) continue;
+               const row = byId.get(cardId);
+               if (!row) continue;
                const card = mapCard(row);
                cards.push({
                   id: card.id,

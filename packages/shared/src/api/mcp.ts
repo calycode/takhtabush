@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_CARDS_PER_BULK_CREATE, MAX_CARDS_PER_DECK, MAX_IMPORT_ROWS } from '../domain/limits';
 import { idSchema, isoDateSchema } from './common';
 import type {
    Card,
@@ -112,7 +113,7 @@ export const mcpGetDeckInputSchema = z.object({
 
 export const mcpCreateCardsInputSchema = z.object({
    deckId: idSchema,
-   cards: z.array(createCardInputSchema).min(1).max(100),
+   cards: z.array(createCardInputSchema).min(1).max(MAX_CARDS_PER_BULK_CREATE),
 });
 
 export const mcpImportDeckInputSchema = importDeckInputSchema.extend({ deckId: idSchema });
@@ -130,7 +131,7 @@ export const mcpGetStudyPlanInputSchema = z.object({
    mode: studyModeSchema.default('mixed'),
    minutes: z.number().int().min(1).max(180).default(15),
    goal: studyGoalSchema.default('learn'),
-   cardIds: z.array(idSchema).max(500).optional(),
+   cardIds: z.array(idSchema).max(MAX_CARDS_PER_DECK).optional(),
 });
 
 /** Session snapshot inputs (SPEC §9.8, [R6]). */
@@ -148,7 +149,7 @@ export const mcpRenderStudySessionInputSchema = z.object({
    mode: studyModeSchema.default('flashcards'),
    goal: studyGoalSchema.default('learn'),
    minutes: z.number().int().min(1).max(180).default(15),
-   cardIds: z.array(idSchema).max(500).optional(),
+   cardIds: z.array(idSchema).max(MAX_CARDS_PER_DECK).optional(),
 });
 
 /** Audit record written for every MCP write (SPEC §9.7). */
@@ -256,19 +257,20 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
    {
       name: 'create_deck',
       scope: 'decks:write',
-      description: 'Create a deck.',
+      description:
+         'Create a deck. Pass `collectionId` (from a collection the caller owns) to file it under a collection.',
       inputSchema: createDeckInputSchema,
    },
    {
       name: 'create_cards',
       scope: 'decks:write',
-      description: 'Bulk-create cards in a deck.',
+      description: `Bulk-create up to ${MAX_CARDS_PER_BULK_CREATE} cards in a deck. A deck holds at most ${MAX_CARDS_PER_DECK} live cards; a call that would exceed the cap fails with the stable code DECK_CARD_LIMIT_EXCEEDED.`,
       inputSchema: mcpCreateCardsInputSchema,
    },
    {
       name: 'import_deck',
       scope: 'decks:write',
-      description: 'Import cards from CSV, TSV, or JSON.',
+      description: `Import cards from CSV, TSV, or JSON (at most ${MAX_IMPORT_ROWS} rows per call). The deck is capped at ${MAX_CARDS_PER_DECK} live cards, so split larger imports across decks or delete cards first; an import that would exceed the cap is rejected as a whole with DECK_CARD_LIMIT_EXCEEDED.`,
       inputSchema: mcpImportDeckInputSchema,
    },
    {

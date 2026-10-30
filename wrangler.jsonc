@@ -41,9 +41,17 @@
    ],
    // OAuth grants, tokens, and clients for the ChatGPT connector. The id is
    // omitted so Cloudflare/Appflare provision the namespace on deploy.
+   //
+   // CACHE is a separate namespace for derived, stale-tolerant values (review
+   // streak, global tag summary). It is never used for authorization, so the
+   // auth grants in OAUTH_KV must not share it. Appflare/Cloudflare must
+   // provision this namespace; a deployment without it still works (fail open).
    "kv_namespaces": [
       {
          "binding": "OAUTH_KV",
+      },
+      {
+         "binding": "CACHE",
       },
    ],
    "ai": {

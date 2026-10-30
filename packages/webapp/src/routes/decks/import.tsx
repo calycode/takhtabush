@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, buttonVariants } from '@caly/ui/components/button';
 import { Label } from '@caly/ui/components/label';
 import { Textarea } from '@caly/ui/components/textarea';
@@ -15,15 +15,17 @@ import { Badge } from '@caly/ui/components/badge';
 import { cn } from '@caly/ui/lib/utils';
 import {
    ImportParseError,
+   MAX_CARDS_PER_DECK,
    MAX_IMPORT_ROWS,
    parseImportContent,
    type DelimiterChoice,
+   type Deck,
    type ImportFormat,
    type ImportResult,
    type TagSeparator,
 } from '@caly/shared';
 import { ApiError } from '../../lib/api/client';
-import { importDeck } from '../../lib/api/decks';
+import { getDeck, importDeck } from '../../lib/api/decks';
 
 const SAMPLE = `front,back,tags
 hola,hello,spanish;greetings
@@ -66,6 +68,15 @@ export function DeckImport({ id }: { id?: string }) {
    const [fileError, setFileError] = useState<string | null>(null);
    const [dragging, setDragging] = useState(false);
    const [busy, setBusy] = useState(false);
+   const [deck, setDeck] = useState<Deck | null>(null);
+
+   useEffect(() => {
+      getDeck(deckId)
+         .then((result) => setDeck(result.data))
+         .catch(() => undefined);
+   }, [deckId]);
+
+   const remaining = deck ? Math.max(0, MAX_CARDS_PER_DECK - deck.cardCount) : MAX_CARDS_PER_DECK;
 
    const validation = useMemo(
       () => validate(format, content, hasHeader, delimiter, tagSeparator),
@@ -138,6 +149,9 @@ export function DeckImport({ id }: { id?: string }) {
                <CardDescription>
                   CSV, TSV, or JSON. Columns: front, back, tags — check the preview before
                   importing.
+                  {deck
+                     ? ` This deck has ${deck.cardCount} / ${MAX_CARDS_PER_DECK} cards, so ${remaining} more fit.`
+                     : ''}
                </CardDescription>
             </CardHeader>
             <CardContent>
@@ -249,7 +263,13 @@ export function DeckImport({ id }: { id?: string }) {
                   )}
                   {content.trim() &&
                      (validation.ok ? (
-                        <Alert variant={validation.errors.length > 0 ? 'destructive' : 'info'}>
+                        <Alert
+                           variant={
+                              validation.errors.length > 0 || rowCount > remaining
+                                 ? 'destructive'
+                                 : 'info'
+                           }
+                        >
                            <AlertDescription>
                               Parsed {validation.rows.length} row(s)
                               {validation.errors.length > 0
@@ -257,7 +277,10 @@ export function DeckImport({ id }: { id?: string }) {
                                  : ''}
                               .
                               {validation.rows.length > MAX_IMPORT_ROWS
-                                 ? ` Only the first ${MAX_IMPORT_ROWS} rows will import.`
+                                 ? ` Only the first ${MAX_IMPORT_ROWS} rows can import per request.`
+                                 : ''}
+                              {rowCount > remaining
+                                 ? ` This file needs room for ${rowCount} new cards, but only ${remaining} fit in the deck.`
                                  : ''}
                            </AlertDescription>
                         </Alert>
@@ -339,7 +362,7 @@ export function DeckImport({ id }: { id?: string }) {
                   <div className='flex gap-2'>
                      <Button
                         type='submit'
-                        disabled={busy || !validation.ok || rowCount === 0}
+                        disabled={busy || !validation.ok || rowCount === 0 || rowCount > remaining}
                      >
                         Import
                      </Button>

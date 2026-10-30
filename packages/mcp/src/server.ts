@@ -112,6 +112,21 @@ async function dispatch(message: JsonRpcMessage, ctx: McpContext) {
          });
       }
       if (cause instanceof McpError) return error(id, cause.code, cause.message);
+      // Service errors carry a stable string code (for example
+      // DECK_CARD_LIMIT_EXCEEDED). Keep it in the model-visible tool text so a
+      // host can explain the limit and the model can correct its request.
+      if (
+         method === 'tools/call' &&
+         cause &&
+         typeof cause === 'object' &&
+         typeof (cause as { code?: unknown }).code === 'string'
+      ) {
+         const { code, message } = cause as { code: string; message?: string };
+         return result(id, {
+            content: [{ type: 'text', text: `${code}: ${message ?? 'Request failed'}` }],
+            isError: true,
+         });
+      }
       return error(id, -32603, cause instanceof Error ? cause.message : 'Internal error');
    }
 }

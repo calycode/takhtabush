@@ -4,11 +4,11 @@ import type { AppEnv } from '../env';
 import {
    getDueForecast,
    getReviewAggregate,
-   getReviewStreak,
    getWeakCards,
    listDueCardIds,
 } from '../repositories/study';
 import { getDeckCounts } from '../repositories/stats';
+import { getCachedReviewStreak } from './cache-service';
 import { getOwnedDeck } from './deck-service';
 
 export async function computeDeckStats(
@@ -23,7 +23,7 @@ export async function computeDeckStats(
    const [counts, aggregate, streak, forecast, weak, dueIds] = await Promise.all([
       getDeckCounts(env, userId, deckId),
       getReviewAggregate(env, userId, deckId),
-      getReviewStreak(env, userId),
+      getCachedReviewStreak(env, userId),
       getDueForecast(env, userId, deckId, nowIso, 14),
       getWeakCards(env, userId, deckId, 10),
       listDueCardIds(env, userId, deckId, nowIso, 500),

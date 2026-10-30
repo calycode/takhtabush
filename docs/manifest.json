@@ -1,7 +1,7 @@
 {
    "version": 1,
-   "generatedAt": "2026-10-30T13:07:20.031Z",
-   "hash": "fb631fcdae8cc467",
+   "generatedAt": "2026-10-30T16:21:47.013Z",
+   "hash": "efed40f2ac1f1af8",
    "entries": [
       {
          "section": "Overview",
@@ -246,12 +246,23 @@
          "file": "developer/agent-feedback.md"
       },
       {
+         "section": "Developer guide",
+         "path": "developer/d1-cost-model",
+         "title": "D1 cost model",
+         "group": null,
+         "parent": null,
+         "order": 42.022,
+         "source": "guide",
+         "segments": ["developer", "d1-cost-model"],
+         "file": "developer/d1-cost-model.md"
+      },
+      {
          "section": "Reference",
          "path": "developer/reference/mcp-tools",
          "title": "MCP tools",
          "group": null,
          "parent": null,
-         "order": 60.022,
+         "order": 60.023,
          "source": "generated",
          "segments": ["developer", "reference", "mcp-tools"],
          "file": "developer/reference/mcp-tools.md"
@@ -262,7 +273,7 @@
          "title": "HTTP API",
          "group": null,
          "parent": null,
-         "order": 61.023,
+         "order": 61.024,
          "source": "generated",
          "segments": ["developer", "reference", "api"],
          "file": "developer/reference/api.md"

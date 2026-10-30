@@ -1,10 +1,10 @@
 # Takhtabush — Unified Worker Specification
 
-**Revision:** 11 · **Date:** 2026-10-30 · **Status:** Phases 1–3 implemented; single tenancy + first-run setup; Phase 4 deferred; Phase 6 mobile host validation in progress
+**Revision:** 13 · **Date:** 2026-10-30 · **Status:** Phases 1–3 implemented; single tenancy + first-run setup; Phase 4 deferred; Phase 6 mobile host validation in progress
 **Deployment model:** Single Cloudflare Worker, single tenant by default
 **Stack:** Preact + Vite, shadcn/ui (Base UI), Tailwind CSS v4, Hono, Cloudflare D1, R2, Email Service, AI Gateway / Workers AI, MCP
 
-> **Revision 9** (2026-10-21) adds OAuth 2.1 for ChatGPT on `/mcp`: `@cloudflare/workers-oauth-provider` protects OAuth bearers while API keys and sessions bypass it, with CIMD/DCR, PKCE, refresh tokens, and a consent page that reuses the existing magic-link session. `/mcp/oauth` is a path-descendant alias. **Revision 8** (2026-10-20) enforces single tenancy and adds first-run setup. The first user is the owner; later addresses need to be listed in `ALLOWED_EMAILS`, and `OWNER_EMAIL` pins the owner from the start. `SETUP_TOKEN` enables `GET /api/v1/auth/status` plus `POST /api/v1/auth/setup`, which creates the owner before email is configured and recovers owner access later. A partial unique index allows at most one owner row. The production/Appflare config is the root `wrangler.jsonc`; local development uses `wrangler.dev.jsonc`. **Revision 7** (2026-10-14) lets card **definitions** be authored and rendered as Markdown. The `back` field of a `term_definition` (and the answer of `typed`/`image_prompt`) is stored as raw Markdown — the only stored form — and is edited with a tiny inline WYSIWYG editor that parses the source into an ephemeral IR (never persisted) and serializes edits back to raw Markdown. Every read surface renders that Markdown: the study card (webapp and MCP Apps widget via the shared `StudyCardShell`), the deck card table, and the card-details dialog. Typed grading and compact previews flatten Markdown to plain text. **Revision 6** (2026-10-14) adds an optional MCP Apps-compatible study-session UI for chat hosts such as ChatGPT. It uses a decoupled data-tool/render-tool flow: `start_study_session` creates and returns session data, while `render_study_session` returns an MCP Apps UI resource. The widget renders a server-authoritative session snapshot and records reviews through `record_review`. **Revision 5** (2026-10-14) makes card deletion consistent: `DELETE /cards/:id` is a soft delete with in-place confirmation and undo (`POST /cards/:id/restore`), every statistic excludes deleted cards, and the cleanup job hard-deletes cards (with their events, revisions, and state) 30 days after deletion. It also polishes study interaction: multiple-choice options render as a large tappable grid with numbered key hints, prompt and answer share equal emphasis, and the typed input is focused for each new card. The import parser gained a configurable column delimiter and tags separator plus a live preview table. **Revision 4** adds optional API key expiration, SQL keyset pagination for `search_cards`, removal of the dead `learning_state.suspended` column, an explicit pause-vs-abandon choice on session exit, import file uploads with shared client-side validation plus an export menu, and cursor pagination for the deck and card lists. **Revision 3** added the scheduled cleanup job, suspend/resume, performance-based grading (all four responses), selectable goals, and the full session lifecycle. **Revision 2** folded in Cloudflare Email Service magic links, D1-backed auth rate limiting, opaque **API-key** auth for MCP (instead of OAuth), session management, per-mode study screens with **two matching variants**, R2 media upload, and shared grading helpers. New items are tagged **[R2]** / **[R3]** / **[R4]** / **[R5]** / **[R6]** / **[R7]**; see §20 for the changelog.
+> **Revision 13** (2026-10-30) finishes the D1 cost follow-ups: a separate `CACHE` Workers KV namespace caches only the derived review streak (10-minute TTL) and global tag summary (5-minute TTL), failing open when absent; a derived `card_tags(card_id, owner_id, deck_id, tag)` table index-makes tag filters and is maintained on every card write; owner-wide front search uses a trigram FTS5 index with a `LIKE` fallback for short or already-bounded queries; and the two per-request auth reads collapse into one `sessions JOIN users` query. **Revision 12** (2026-10-30) adds collections and bounded deck sizes: `folders` becomes a flat `collections` table with `decks.collection_id` (`ON DELETE SET NULL`), and `@caly/shared` exports hard limits (500 cards per deck, 500 import rows, 100 cards per bulk create, 200 decks per collection, 100 collections per user) enforced by every API/MCP write path. The same change removes the remaining query-per-row loops (study-session snapshot, import, bulk create, cleanup), replaces the per-write deck recount with an atomic counter, adds `learning_state.deck_id`, and records the cost model in `docs/developer/d1-cost-model.md`. **Revision 9** (2026-10-21) adds OAuth 2.1 for ChatGPT on `/mcp`: `@cloudflare/workers-oauth-provider` protects OAuth bearers while API keys and sessions bypass it, with CIMD/DCR, PKCE, refresh tokens, and a consent page that reuses the existing magic-link session. `/mcp/oauth` is a path-descendant alias. **Revision 8** (2026-10-20) enforces single tenancy and adds first-run setup. The first user is the owner; later addresses need to be listed in `ALLOWED_EMAILS`, and `OWNER_EMAIL` pins the owner from the start. `SETUP_TOKEN` enables `GET /api/v1/auth/status` plus `POST /api/v1/auth/setup`, which creates the owner before email is configured and recovers owner access later. A partial unique index allows at most one owner row. The production/Appflare config is the root `wrangler.jsonc`; local development uses `wrangler.dev.jsonc`. **Revision 7** (2026-10-14) lets card **definitions** be authored and rendered as Markdown. The `back` field of a `term_definition` (and the answer of `typed`/`image_prompt`) is stored as raw Markdown — the only stored form — and is edited with a tiny inline WYSIWYG editor that parses the source into an ephemeral IR (never persisted) and serializes edits back to raw Markdown. Every read surface renders that Markdown: the study card (webapp and MCP Apps widget via the shared `StudyCardShell`), the deck card table, and the card-details dialog. Typed grading and compact previews flatten Markdown to plain text. **Revision 6** (2026-10-14) adds an optional MCP Apps-compatible study-session UI for chat hosts such as ChatGPT. It uses a decoupled data-tool/render-tool flow: `start_study_session` creates and returns session data, while `render_study_session` returns an MCP Apps UI resource. The widget renders a server-authoritative session snapshot and records reviews through `record_review`. **Revision 5** (2026-10-14) makes card deletion consistent: `DELETE /cards/:id` is a soft delete with in-place confirmation and undo (`POST /cards/:id/restore`), every statistic excludes deleted cards, and the cleanup job hard-deletes cards (with their events, revisions, and state) 30 days after deletion. It also polishes study interaction: multiple-choice options render as a large tappable grid with numbered key hints, prompt and answer share equal emphasis, and the typed input is focused for each new card. The import parser gained a configurable column delimiter and tags separator plus a live preview table. **Revision 4** adds optional API key expiration, SQL keyset pagination for `search_cards`, removal of the dead `learning_state.suspended` column, an explicit pause-vs-abandon choice on session exit, import file uploads with shared client-side validation plus an export menu, and cursor pagination for the deck and card lists. **Revision 3** added the scheduled cleanup job, suspend/resume, performance-based grading (all four responses), selectable goals, and the full session lifecycle. **Revision 2** folded in Cloudflare Email Service magic links, D1-backed auth rate limiting, opaque **API-key** auth for MCP (instead of OAuth), session management, per-mode study screens with **two matching variants**, R2 media upload, and shared grading helpers. New items are tagged **[R2]** / **[R3]** / **[R4]** / **[R5]** / **[R6]** / **[R7]**; see §20 for the changelog.
 
 ## 1. Product summary
 
@@ -65,7 +65,9 @@ takhtabush/
 │   ├── 0003_rate_limits.sql       # [R2]
 │   ├── 0004_api_keys.sql          # [R2]
 │   ├── 0005_drop_learning_state_suspended.sql  # [R4]
-│   └── 0006_api_keys_expires_at.sql            # [R4]
+│   ├── 0006_api_keys_expires_at.sql            # [R4]
+│   ├── 0007_single_owner.sql                   # [R8]
+│   └── 0008_collections_and_limits.sql        # [R12]
 ├── packages/
 │   ├── webapp/  api/  mcp/  study-widget/  ui/  shared/  worker-kit/
 ├── docs/  plans/
@@ -162,7 +164,7 @@ All API routes except `/api/v1/health` and the auth endpoints require authentica
 
 ### 4.1 D1 schema
 
-Core tables live in `migrations/0001_init.sql`: `users`, `decks`, `cards`, `card_revisions`, `folders`, `media_objects`, `study_sessions`, `review_events`, `learning_state`, `ai_evaluations`, `mcp_audit_events`, plus the auth tables `sessions` and `magic_link_tokens`.
+Core tables live in `migrations/0001_init.sql`: `users`, `decks`, `cards`, `card_revisions`, `folders`, `media_objects`, `study_sessions`, `review_events`, `learning_state`, `ai_evaluations`, `mcp_audit_events`, plus the auth tables `sessions` and `magic_link_tokens`. **[R12]** `folders` was renamed to `collections` and flattened (see §4.4).
 
 **[R2] Added tables** (`0003_rate_limits.sql`, `0004_api_keys.sql`):
 
@@ -191,6 +193,56 @@ CREATE TABLE api_keys (
 
 **[R6] No new core tables are required.** The MCP Apps widget operates on the existing `study_sessions`, `cards`, and append-only `review_events` data. It must not introduce a separate widget-side source of truth.
 
+**[R12] Collections and bounded decks** (`0008_collections_and_limits.sql`):
+
+```sql
+collections
+  id TEXT PRIMARY KEY                 -- col_…
+  owner_id TEXT NOT NULL REFERENCES users(id)
+  name TEXT NOT NULL
+  position INTEGER NOT NULL DEFAULT 0
+  created_at TEXT NOT NULL
+  updated_at TEXT NOT NULL
+  deleted_at TEXT
+
+decks.collection_id TEXT REFERENCES collections(id) ON DELETE SET NULL
+```
+
+Collections are flat (no `parent_id`). Deleting one never deletes a deck: the API
+also detaches decks on soft delete. `decks.card_count` is the authoritative
+denormalized counter, reserved with one conditional `UPDATE` per write instead of
+being recounted. `learning_state.deck_id` stores a derived copy of the card's
+deck so due counts, the due queue, and the forecast use one index range per deck.
+`0010_collection_positions.sql` renumbers pre-existing collections (0008 added
+`position` with a default of 0) so the deck library's up/down controls swap
+distinct values.
+
+**[R13] Derived search indexes** (`0009_card_tags_and_fts.sql`):
+
+```sql
+CREATE TABLE card_tags (
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  owner_id TEXT NOT NULL REFERENCES users(id),
+  deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL COLLATE NOCASE,
+  PRIMARY KEY (card_id, tag)
+);
+
+CREATE VIRTUAL TABLE cards_fts USING fts5(
+  front, back,
+  content='cards', content_rowid='rowid',
+  tokenize='trigram'
+);
+-- INSERT/DELETE/UPDATE triggers keep cards_fts in sync with cards.
+```
+
+`cards.tags_json` remains the display source; `card_tags` is a derived,
+rebuildable projection maintained in the same `db.batch()` as the card write.
+Soft-deleted cards lose their tag rows immediately, and hard cleanup deletes
+them before the card row. `cards_fts` is an external-content table, so a future
+migration that rebuilds `cards` must re-run
+`INSERT INTO cards_fts(cards_fts) VALUES ('rebuild')`.
+
 ### 4.2 Indexes
 
 `0002_indexes.sql` (core):
@@ -207,6 +259,43 @@ CREATE INDEX idx_ai_subject ON ai_evaluations(subject_type, subject_id, created_
 ```
 
 **[R2] Additional** indexes: `sessions(user_id, expires_at)`, `magic_link_tokens(email, expires_at)`, `decks(owner_id, folder_id, deleted_at)`, `study_sessions(user_id, deck_id, status)`, `mcp_audit_events(user_id, created_at DESC)`, `rate_limits(window_start)`, `api_keys(user_id, revoked_at)`, `api_keys(key_hash)`.
+
+**[R12] Cost indexes** (`0008`): keyset indexes `decks(owner_id, deleted_at, updated_at DESC, id DESC)` and `cards(deck_id, deleted_at, updated_at DESC, id DESC)` replace the narrower 0002 versions; `collections(owner_id, deleted_at, position, name)`; `decks(owner_id, collection_id, deleted_at, updated_at DESC, id DESC)`; `study_sessions(user_id, started_at DESC)` and `(user_id, status, started_at DESC)`; `review_events(user_id, reviewed_at DESC)`, `(card_id)`, and `(session_id, card_id)`; `card_revisions(card_id)`; `learning_state(card_id)` and `(user_id, deck_id, due_at)`; partial indexes on `cards(image_media_id)` and `cards(audio_media_id)`. Rationale per index: `docs/developer/d1-cost-model.md`.
+
+**[R13] Search indexes** (`0009`): `card_tags` primary key `(card_id, tag)`;
+`idx_card_tags_owner_tag(owner_id, tag, card_id)`; and
+`idx_card_tags_owner_deck_tag(owner_id, deck_id, tag, card_id)`. The `cards_fts`
+trigram table indexes `cards(front, back)` through three triggers. Tag filters
+and owner-wide text search drive from these indexes instead of scanning the
+owner's cards.
+
+### 4.4 Bounded-work limits
+
+**[R12]** Limits live in one place, `packages/shared/src/domain/limits.ts`, and
+`@caly/shared` re-exports them as `LIMITS` plus named constants. API Zod schemas,
+MCP tool schemas, the web app, and the service guards all read the same values.
+
+| Limit                   | Value | Enforced by                                                                  | Error code                             |
+| ----------------------- | ----: | ---------------------------------------------------------------------------- | -------------------------------------- |
+| Cards per deck          |   500 | Conditional `card_count` reservation on create, bulk create, import, restore | `DECK_CARD_LIMIT_EXCEEDED` (409)       |
+| Cards per bulk create   |   100 | `mcpCreateCardsInputSchema` + service guard                                  | `BULK_CARD_LIMIT_EXCEEDED` (409)       |
+| Import rows per request |   500 | Parser slice + whole-request capacity check                                  | `DECK_CARD_LIMIT_EXCEEDED` (409)       |
+| Import bytes            |  1 MB | `importDeckInputSchema`                                                      | `VALIDATION_ERROR` (422)               |
+| Tags per card           |    20 | `createCardInputSchema`, `updateCardInputSchema`, import                     | `VALIDATION_ERROR` (422)               |
+| Tag length              |    40 | `tagSchema`                                                                  | `VALIDATION_ERROR` (422)               |
+| Decks per collection    |   200 | Collection capacity check on create/move                                     | `COLLECTION_DECK_LIMIT_EXCEEDED` (409) |
+| Collections per user    |   100 | `createCollection`                                                           | `COLLECTION_LIMIT_EXCEEDED` (409)      |
+| Collection name         |    80 | `createCollectionInputSchema`                                                | `VALIDATION_ERROR` (422)               |
+
+The deck cap is a **write** limit, not a read filter: decks that predate the cap
+stay readable and studyable, but cannot accept new or restored cards until they
+shrink. Server checks are authoritative; the UI and MCP descriptions only explain
+the limit early.
+
+**[R13]** Tag filtering is an equality lookup on `card_tags`, so the 40-character
+tag limit is a UI/storage bound rather than a `LIKE`-pattern bound. Global tag
+suggestions are cached in `CACHE` for five minutes; deck-scoped suggestions stay
+bounded by the 500-card cap and are not cached.
 
 ### 4.3 Card types
 
@@ -262,49 +351,54 @@ Base URL `/api/v1`. Success envelope `{ "data": {}, "meta": {} }`; error envelop
 
 ### 6.2 Endpoints
 
-| Method | Path                           | Purpose                                                  |
-| ------ | ------------------------------ | -------------------------------------------------------- |
-| GET    | `/health`                      | Liveness/readiness (DB check)                            |
-| POST   | `/auth/magic-link`             | Request login link (rate limited)                        |
-| POST   | `/auth/verify`                 | Exchange magic-link token for session                    |
-| POST   | `/auth/logout`                 | Revoke current session                                   |
-| GET    | `/me`                          | Current user and preferences                             |
-| PATCH  | `/me`                          | Update display name **[R2]**                             |
-| GET    | `/sessions`                    | **[R2]** List active sessions                            |
-| DELETE | `/sessions/:id`                | **[R2]** Revoke one session                              |
-| DELETE | `/sessions`                    | **[R2]** Revoke all other sessions                       |
-| GET    | `/api-keys`                    | **[R2]** List MCP API keys                               |
-| POST   | `/api-keys`                    | **[R2]** Create an API key (secret shown once)           |
-| DELETE | `/api-keys/:id`                | **[R2]** Revoke an API key                               |
-| GET    | `/decks`                       | List decks                                               |
-| POST   | `/decks`                       | Create deck                                              |
-| GET    | `/decks/:id`                   | Deck detail                                              |
-| PATCH  | `/decks/:id`                   | Update deck                                              |
-| DELETE | `/decks/:id`                   | Soft-delete deck                                         |
-| GET    | `/decks/:id/cards`             | List cards                                               |
-| POST   | `/decks/:id/cards`             | Create card                                              |
-| GET    | `/cards/:id`                   | Card detail                                              |
-| PATCH  | `/cards/:id`                   | Update card                                              |
-| DELETE | `/cards/:id`                   | Soft-delete card (undoable; purged by cleanup)           |
-| POST   | `/cards/:id/suspend`           | **[R3]** Suspend a card                                  |
-| POST   | `/cards/:id/resume`            | **[R3]** Resume a card                                   |
-| POST   | `/cards/:id/restore`           | **[R5]** Undo a soft-deleted card                        |
-| POST   | `/decks/:id/import`            | Import CSV/TSV/JSON                                      |
-| GET    | `/decks/:id/export`            | Export deck (csv/tsv/json)                               |
-| POST   | `/media/intent`                | Create media upload intent (GET alias)                   |
-| PUT    | `/media/:id/content`           | **[R2]** Upload object bytes to R2                       |
-| POST   | `/media/:id/complete`          | Complete upload                                          |
-| GET    | `/media/:id`                   | Media metadata                                           |
-| GET    | `/media/:id/content`           | **[R2]** Stream media object                             |
-| GET    | `/study/sessions`              | **[R3]** List sessions (status filter)                   |
-| POST   | `/study/sessions`              | Start study session                                      |
-| GET    | `/study/sessions/:id`          | Session detail (+ `reviewedCardIds` for resume) **[R3]** |
-| POST   | `/study/sessions/:id/reviews`  | Append review event                                      |
-| POST   | `/study/sessions/:id/complete` | Complete session                                         |
-| POST   | `/study/sessions/:id/abandon`  | **[R3]** Abandon an active session                       |
-| GET    | `/stats/decks/:id`             | Deck learning statistics                                 |
-| GET    | `/study/recommendation`        | Clef-informed study plan (scheduler fallback)            |
-| POST   | `/ai/evaluations`              | Request bounded Clef evaluation                          |
+| Method | Path                           | Purpose                                                    |
+| ------ | ------------------------------ | ---------------------------------------------------------- |
+| GET    | `/health`                      | Liveness/readiness (DB check)                              |
+| POST   | `/auth/magic-link`             | Request login link (rate limited)                          |
+| POST   | `/auth/verify`                 | Exchange magic-link token for session                      |
+| POST   | `/auth/logout`                 | Revoke current session                                     |
+| GET    | `/me`                          | Current user and preferences                               |
+| PATCH  | `/me`                          | Update display name **[R2]**                               |
+| GET    | `/sessions`                    | **[R2]** List active sessions                              |
+| DELETE | `/sessions/:id`                | **[R2]** Revoke one session                                |
+| DELETE | `/sessions`                    | **[R2]** Revoke all other sessions                         |
+| GET    | `/api-keys`                    | **[R2]** List MCP API keys                                 |
+| POST   | `/api-keys`                    | **[R2]** Create an API key (secret shown once)             |
+| DELETE | `/api-keys/:id`                | **[R2]** Revoke an API key                                 |
+| GET    | `/decks`                       | List decks (`collectionId` / `unfiled` filter)             |
+| POST   | `/decks`                       | Create deck                                                |
+| GET    | `/decks/:id`                   | Deck detail                                                |
+| PATCH  | `/decks/:id`                   | Update deck (including moving to a collection)             |
+| DELETE | `/decks/:id`                   | Soft-delete deck                                           |
+| GET    | `/collections`                 | **[R12]** List collections with deck counts                |
+| POST   | `/collections`                 | **[R12]** Create collection                                |
+| PATCH  | `/collections/:id`             | **[R12]** Rename or reorder a collection                   |
+| DELETE | `/collections/:id`             | **[R12]** Soft-delete; its decks move to no collection     |
+| GET    | `/tags`                        | **[R13]** Tag suggestions (`deckId` scoped; global cached) |
+| GET    | `/decks/:id/cards`             | List cards                                                 |
+| POST   | `/decks/:id/cards`             | Create card                                                |
+| GET    | `/cards/:id`                   | Card detail                                                |
+| PATCH  | `/cards/:id`                   | Update card                                                |
+| DELETE | `/cards/:id`                   | Soft-delete card (undoable; purged by cleanup)             |
+| POST   | `/cards/:id/suspend`           | **[R3]** Suspend a card                                    |
+| POST   | `/cards/:id/resume`            | **[R3]** Resume a card                                     |
+| POST   | `/cards/:id/restore`           | **[R5]** Undo a soft-deleted card                          |
+| POST   | `/decks/:id/import`            | Import CSV/TSV/JSON                                        |
+| GET    | `/decks/:id/export`            | Export deck (csv/tsv/json)                                 |
+| POST   | `/media/intent`                | Create media upload intent (GET alias)                     |
+| PUT    | `/media/:id/content`           | **[R2]** Upload object bytes to R2                         |
+| POST   | `/media/:id/complete`          | Complete upload                                            |
+| GET    | `/media/:id`                   | Media metadata                                             |
+| GET    | `/media/:id/content`           | **[R2]** Stream media object                               |
+| GET    | `/study/sessions`              | **[R3]** List sessions (status filter)                     |
+| POST   | `/study/sessions`              | Start study session                                        |
+| GET    | `/study/sessions/:id`          | Session detail (+ `reviewedCardIds` for resume) **[R3]**   |
+| POST   | `/study/sessions/:id/reviews`  | Append review event                                        |
+| POST   | `/study/sessions/:id/complete` | Complete session                                           |
+| POST   | `/study/sessions/:id/abandon`  | **[R3]** Abandon an active session                         |
+| GET    | `/stats/decks/:id`             | Deck learning statistics                                   |
+| GET    | `/study/recommendation`        | Clef-informed study plan (scheduler fallback)              |
+| POST   | `/ai/evaluations`              | Request bounded Clef evaluation                            |
 
 ### 6.3 Validation
 
@@ -313,6 +407,7 @@ All external input is validated with Zod schemas from `@caly/shared`. Card creat
 ### 6.4 Import and export **[R4]**
 
 - Import accepts file uploads (`.csv`, `.tsv`, `.json`, ≤1 MB) as well as pasted text; the shared parser validates structure before submitting (row + issue preview) and the API rejects unparseable content with `422`.
+- **[R12]** One request imports at most 500 rows, and the whole import is rejected with `DECK_CARD_LIMIT_EXCEEDED` if it would push the deck past 500 live cards. Import writes are batched (`db.batch()`); the deck's counters are reserved once, not recounted per row.
 - **[R5]** Parsing is configurable via `delimiter` (CSV column delimiter: comma, semicolon, tab, pipe, or `auto` to infer it from the content) and `tagSeparator` (comma, semicolon, pipe, space, or `none` to keep the tags field whole). The import screen renders a live preview table (front, back, tags) plus any row errors before the user commits, so ambiguous content such as `;` inside tags or a `;`-delimited file can be corrected without editing the source.
 - Export is available from the deck view as a `csv`/`tsv`/`json` download.
 
@@ -419,7 +514,7 @@ Curated workflow tools only. Do not expose every database operation. Full search
 
 ### 9.5 Token efficiency
 
-Compact projections; default page size 20 (max 50); truncate card text in lists; cursor pagination; ids and summaries not raw rows; `get_card` for full content; structured errors with stable codes. **[R4]** `search_cards` is keyset-paginated in SQL with the due-state filter applied in the database (no per-card learning-state lookups), so large card sets stay fast.
+Compact projections; default page size 20 (max 50); truncate card text in lists; cursor pagination; ids and summaries not raw rows; `get_card` for full content; structured errors with stable codes. **[R4]** `search_cards` is keyset-paginated in SQL with the due-state filter applied in the database (no per-card learning-state lookups), so large card sets stay fast. **[R13]** A `tag` filter probes the derived `card_tags` index; owner-wide text uses the trigram FTS table, while deck-scoped or short queries keep `LIKE`.
 
 ### 9.6 Code execution [R10]
 
@@ -570,19 +665,19 @@ Navigation (header nav), decks (Card, Badge, Button, Input, Dialog, Table), card
 
 ### 10.4 Screens
 
-| Screen                     | Purpose                                        |
-| -------------------------- | ---------------------------------------------- |
-| `/`                        | Dashboard: counts, recent decks, quick actions |
-| `/login`                   | Magic-link sign-in (dev link shortcut)         |
-| `/decks`                   | Deck library                                   |
-| `/decks/:id`               | Deck overview, card table, tags, study actions |
-| `/decks/:id/edit`          | Deck settings                                  |
-| `/decks/:id/cards/:cardId` | Card editor                                    |
-| `/decks/:id/import`        | CSV/TSV/JSON import                            |
-| `/study/:sessionId`        | Active study session (per-mode)                |
-| `/stats/:deckId`           | Accuracy, due forecast, weak cards             |
-| `/settings`                | Profile, **[R2]** sessions, study defaults, AI |
-| `/mcp`                     | **[R2]** API keys + connection instructions    |
+| Screen                     | Purpose                                                                          |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `/`                        | Dashboard: counts, recent decks, quick actions                                   |
+| `/login`                   | Magic-link sign-in (dev link shortcut)                                           |
+| `/decks`                   | **[R12]** Deck library with collection filters, move actions, and cap indicators |
+| `/decks/:id`               | Deck overview, card table, tags, study actions                                   |
+| `/decks/:id/edit`          | Deck settings                                                                    |
+| `/decks/:id/cards/:cardId` | Card editor                                                                      |
+| `/decks/:id/import`        | CSV/TSV/JSON import                                                              |
+| `/study/:sessionId`        | Active study session (per-mode)                                                  |
+| `/stats/:deckId`           | Accuracy, due forecast, weak cards                                               |
+| `/settings`                | Profile, **[R2]** sessions, study defaults, AI                                   |
+| `/mcp`                     | **[R2]** API keys + connection instructions                                      |
 
 ### 10.5 Study interaction
 
@@ -641,14 +736,14 @@ Import hooks from `'react'`, not `preact/hooks`. Never add `react`/`react-dom` a
    // Production omits the ids so Appflare/Cloudflare/Wrangler can provision.
    "d1_databases": [{ "binding": "DB", "migrations_dir": "migrations" }],
    "r2_buckets": [{ "binding": "MEDIA" }],
-   "kv_namespaces": [{ "binding": "OAUTH_KV" }],
+   "kv_namespaces": [{ "binding": "OAUTH_KV" }, { "binding": "CACHE" }],
    "send_email": [{ "name": "EMAIL" }],
    "ai": { "binding": "AI" },
    "observability": { "enabled": true },
 }
 ```
 
-**[R2]** `compatibility_date` is `2026-07-29` (the newest supported by the bundled workerd). `send_email` provides the `EMAIL` binding. **[R6]** `run_worker_first` keeps `/api/*`, `/mcp`, `/mcp-apps/*`, and `/media/*` on the Worker so the SPA fallback never answers them. **[R8]** The root `wrangler.jsonc` is the production/Appflare/Deploy-to-Cloudflare config; `wrangler.dev.jsonc` keeps the local ids, dev vars, and dev `SESSION_SECRET`.
+**[R2]** `compatibility_date` is `2026-07-29` (the newest supported by the bundled workerd). `send_email` provides the `EMAIL` binding. **[R6]** `run_worker_first` keeps `/api/*`, `/mcp`, `/mcp-apps/*`, and `/media/*` on the Worker so the SPA fallback never answers them. **[R8]** The root `wrangler.jsonc` is the production/Appflare/Deploy-to-Cloudflare config; `wrangler.dev.jsonc` keeps the local ids, dev vars, and dev `SESSION_SECRET`. **[R13]** `CACHE` is a second KV namespace, separate from `OAUTH_KV`, for derived stale-tolerant values only. Both omit ids in production so Appflare/Cloudflare provision them; a deployment without `CACHE` recomputes from D1.
 
 ### 12.2 Environment type
 
@@ -669,6 +764,8 @@ export type AppEnv = {
    SETUP_TOKEN?: string; // [R8]
    MCP_DEV_NO_AUTH?: string; // development only
    MCP_DEV_USER_EMAIL?: string; // development only
+   OAUTH_KV?: KVNamespace; // OAuth grants
+   CACHE?: KVNamespace; // [R13] derived streak/tag cache, fail-open
    AI_GATEWAY_URL: string;
    AI_GATEWAY_TOKEN?: string;
    CLEF_MODEL: string;
@@ -708,20 +805,22 @@ pnpm dev                # SPA on :5173 + unified Worker on :8787
 
 ### 14.1 Required tests
 
-| Area           | Tests                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------- |
-| Shared schemas | Valid/invalid payloads, cursor encode/decode, media limits                                        |
-| Scheduler      | Response transitions, due dates, lapses, versioning, rebuild                                      |
-| Grading        | Normalization, typed/cloze checks, cloze masking                                                  |
-| Journey        | Deterministic strategy/card selection                                                             |
-| Import         | CSV/TSV/JSON parsing, quoted delimiters, malformed rows                                           |
-| Clef           | Response normalization, invalid rejection                                                         |
-| Auth           | Magic-link request/verify, dev-token gating, invite gate, rate limit, session list/revoke, logout |
-| MCP            | Scope intersection, API-key tools/list, write denial, unknown key                                 |
-| API            | Health, routing, ownership, error envelopes, pagination                                           |
-| MCP Apps       | Render-tool authorization, UI metadata, session ownership, review submission, fallback link       |
+| Area           | Tests                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| Shared schemas | Valid/invalid payloads, cursor encode/decode, media limits                                          |
+| Scheduler      | Response transitions, due dates, lapses, versioning, rebuild                                        |
+| Grading        | Normalization, typed/cloze checks, cloze masking                                                    |
+| Journey        | Deterministic strategy/card selection                                                               |
+| Import         | CSV/TSV/JSON parsing, quoted delimiters, malformed rows                                             |
+| Clef           | Response normalization, invalid rejection                                                           |
+| Auth           | Magic-link request/verify, dev-token gating, invite gate, rate limit, session list/revoke, logout   |
+| MCP            | Scope intersection, API-key tools/list, write denial, unknown key                                   |
+| API            | Health, routing, ownership, error envelopes, pagination                                             |
+| MCP Apps       | Render-tool authorization, UI metadata, session ownership, review submission, fallback link         |
+| Search/index   | Tag filter uses `card_tags`; FTS vs `LIKE` selection; short/deck-scoped fallback; tag normalization |
+| Cache          | Hit, miss, malformed value, KV failure, and missing binding for streak and global tags              |
 
-**Current status:** shared 21, api 38, mcp 8 tests. Still missing: R2 upload lifecycle unit tests, UI interaction tests, repository-level CRUD tests, session lifecycle route tests.
+**Current status:** shared 35, api 88, mcp 19 tests. Still missing: R2 upload lifecycle unit tests, UI interaction tests, repository-level CRUD tests, session lifecycle route tests.
 
 ### 14.2 Quality gates
 
@@ -794,44 +893,49 @@ Multi-tenant organizations and billing; realtime collaborative editing; public m
 
 ## 19. Key decisions
 
-| ID  | Decision                                                                                                                                                    |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Deploy one unified Cloudflare Worker for SPA, API, media, and MCP                                                                                           |
-| D2  | Single tenant by default; retain `owner_id` for future evolution                                                                                            |
-| D3  | D1 is authoritative; R2 stores only binary media                                                                                                            |
-| D4  | Review events are append-only and rebuildable into learning state                                                                                           |
-| D5  | Clef makes decisions over existing cards; it does not generate content                                                                                      |
-| D6  | Clef is exposed only through `get_study_plan`                                                                                                               |
-| D7  | AI content generation is deferred and must produce user-approved drafts                                                                                     |
-| D8  | MCP uses curated workflow tools only; no code execution is exposed **[R10]**                                                                                |
-| D9  | Full search-and-execute Code Mode is deferred until a real isolation seam exists                                                                            |
-| D10 | MCP never accesses D1/R2 directly                                                                                                                           |
-| D11 | All AI calls go through AI Gateway and degrade gracefully                                                                                                   |
-| D12 | Base UI must pass a Preact compatibility gate before feature development                                                                                    |
-| D13 | **[R2]** Magic links deliver through the Cloudflare Email Service `EMAIL` binding                                                                           |
-| D14 | **[R2]** Auth routes are rate limited (D1 fixed window) with `Retry-After`                                                                                  |
-| D15 | **[R2]** MCP authenticates with scoped API keys on `/mcp`; **[R9]** ChatGPT uses OAuth 2.1 on the same `/mcp` resource                                      |
-| D16 | **[R2]** Sessions are first-class: list and revoke individually or in bulk                                                                                  |
-| D17 | **[R2]** `matching` ships two variants: `pairs` and `choice`                                                                                                |
-| D18 | **[R2]** Answer grading is normalized and lives in `@caly/shared`                                                                                           |
-| D19 | **[R3]** A scheduled cleanup job prunes auth artifacts and orphaned R2 media                                                                                |
-| D20 | **[R3]** Cards can be suspended/resumed; suspended cards are excluded from automatic sessions                                                               |
-| D21 | **[R3]** Auto-graded modes derive `again`/`hard`/`good`/`easy` from performance                                                                             |
-| D22 | **[R3]** Study sessions have a full lifecycle: list, resume, complete, abandon                                                                              |
-| D23 | **[R4]** API keys may expire; there is no key rotation or per-key rate limit                                                                                |
-| D24 | **[R4]** MCP `search_cards` is keyset-paginated in SQL (due filter in the database)                                                                         |
-| D25 | **[R4]** Suspension is `cards.status`; `learning_state.suspended` was removed                                                                               |
-| D26 | **[R4]** Import validates structure client-side; the parser lives in `@caly/shared`                                                                         |
-| D27 | **[R4]** Deck and card lists paginate with a cursor to stay responsive                                                                                      |
-| D28 | **[R5]** Card deletion is soft and undoable; the cleanup job purges it permanently after 30 days                                                            |
-| D29 | **[R5]** Import parsing is configurable (column delimiter + tag separator) with a live preview                                                              |
-| D30 | **[R6]** Add an optional MCP Apps-compatible study-session widget; core MCP workflows remain usable without UI                                              |
-| D31 | **[R6]** Use a decoupled flow: `start_study_session` returns data; `render_study_session` returns the UI resource                                           |
-| D32 | **[R6]** Build a small standalone Preact study widget; do not embed the full web app in ChatGPT                                                             |
-| D33 | **[R6]** The widget renders server-authoritative snapshots and submits reviews through `record_review`; it has no independent source of truth               |
-| D34 | **[R6]** Reuse one set of presentational study components (`@caly/ui/study`) and shared design tokens between the app and the widget                        |
-| D35 | **[R6]** The widget resource is a static, data-free shell (`run_worker_first` keeps `/mcp-apps/*` on the Worker); data arrives via the tool result, not SSR |
-| D36 | **[R9]** `/mcp` is both the API-key endpoint and the OAuth resource; API keys/sessions bypass the provider, and consent reuses the magic-link session       |
+| ID  | Decision                                                                                                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1  | Deploy one unified Cloudflare Worker for SPA, API, media, and MCP                                                                                            |
+| D2  | Single tenant by default; retain `owner_id` for future evolution                                                                                             |
+| D3  | D1 is authoritative; R2 stores only binary media                                                                                                             |
+| D4  | Review events are append-only and rebuildable into learning state                                                                                            |
+| D5  | Clef makes decisions over existing cards; it does not generate content                                                                                       |
+| D6  | Clef is exposed only through `get_study_plan`                                                                                                                |
+| D7  | AI content generation is deferred and must produce user-approved drafts                                                                                      |
+| D8  | MCP uses curated workflow tools only; no code execution is exposed **[R10]**                                                                                 |
+| D9  | Full search-and-execute Code Mode is deferred until a real isolation seam exists                                                                             |
+| D10 | MCP never accesses D1/R2 directly                                                                                                                            |
+| D11 | All AI calls go through AI Gateway and degrade gracefully                                                                                                    |
+| D12 | Base UI must pass a Preact compatibility gate before feature development                                                                                     |
+| D13 | **[R2]** Magic links deliver through the Cloudflare Email Service `EMAIL` binding                                                                            |
+| D14 | **[R2]** Auth routes are rate limited (D1 fixed window) with `Retry-After`                                                                                   |
+| D15 | **[R2]** MCP authenticates with scoped API keys on `/mcp`; **[R9]** ChatGPT uses OAuth 2.1 on the same `/mcp` resource                                       |
+| D16 | **[R2]** Sessions are first-class: list and revoke individually or in bulk                                                                                   |
+| D17 | **[R2]** `matching` ships two variants: `pairs` and `choice`                                                                                                 |
+| D18 | **[R2]** Answer grading is normalized and lives in `@caly/shared`                                                                                            |
+| D19 | **[R3]** A scheduled cleanup job prunes auth artifacts and orphaned R2 media                                                                                 |
+| D20 | **[R3]** Cards can be suspended/resumed; suspended cards are excluded from automatic sessions                                                                |
+| D21 | **[R3]** Auto-graded modes derive `again`/`hard`/`good`/`easy` from performance                                                                              |
+| D22 | **[R3]** Study sessions have a full lifecycle: list, resume, complete, abandon                                                                               |
+| D23 | **[R4]** API keys may expire; there is no key rotation or per-key rate limit                                                                                 |
+| D24 | **[R4]** MCP `search_cards` is keyset-paginated in SQL (due filter in the database)                                                                          |
+| D25 | **[R4]** Suspension is `cards.status`; `learning_state.suspended` was removed                                                                                |
+| D26 | **[R4]** Import validates structure client-side; the parser lives in `@caly/shared`                                                                          |
+| D27 | **[R4]** Deck and card lists paginate with a cursor to stay responsive                                                                                       |
+| D28 | **[R5]** Card deletion is soft and undoable; the cleanup job purges it permanently after 30 days                                                             |
+| D29 | **[R5]** Import parsing is configurable (column delimiter + tag separator) with a live preview                                                               |
+| D30 | **[R6]** Add an optional MCP Apps-compatible study-session widget; core MCP workflows remain usable without UI                                               |
+| D31 | **[R6]** Use a decoupled flow: `start_study_session` returns data; `render_study_session` returns the UI resource                                            |
+| D32 | **[R6]** Build a small standalone Preact study widget; do not embed the full web app in ChatGPT                                                              |
+| D33 | **[R6]** The widget renders server-authoritative snapshots and submits reviews through `record_review`; it has no independent source of truth                |
+| D34 | **[R6]** Reuse one set of presentational study components (`@caly/ui/study`) and shared design tokens between the app and the widget                         |
+| D35 | **[R6]** The widget resource is a static, data-free shell (`run_worker_first` keeps `/mcp-apps/*` on the Worker); data arrives via the tool result, not SSR  |
+| D36 | **[R9]** `/mcp` is both the API-key endpoint and the OAuth resource; API keys/sessions bypass the provider, and consent reuses the magic-link session        |
+| D37 | **[R12]** Decks hold at most 500 cards; limits are shared constants + Zod schemas, enforced by an atomic counter reservation on every write path             |
+| D38 | **[R12]** Organisation is flat collections (`decks.collection_id`, `ON DELETE SET NULL`), not nested folders and not normalized card tags                    |
+| D39 | **[R13]** Workers KV `CACHE` holds only derived, stale-tolerant values (streak 10 min, global tags 5 min); it fails open and is never used for authorization |
+| D40 | **[R13]** `card_tags` is a derived, rebuildable tag index maintained on every card write; `cards.tags_json` stays the display source                         |
+| D41 | **[R13]** Owner-wide front search uses trigram FTS5; deck-scoped, tag-narrowed, and sub-3-character queries keep `LIKE`                                      |
 
 ## 20. Revision history
 
@@ -847,3 +951,5 @@ Multi-tenant organizations and billing; realtime collaborative editing; public m
 - **Revision 9 (2026-10-21)** — OAuth 2.1 for ChatGPT: `/mcp` is protected by `@cloudflare/workers-oauth-provider` with CIMD/DCR, PKCE, token/refresh handling, and RFC 9728/8414 discovery; API keys and sessions bypass the provider. `/mcp/oauth` is a path-descendant alias, `/oauth/authorize` reuses the magic-link session, and `OAUTH_KV` stores grants.
 - **Revision 10 (2026-10-21)** — open-source packaging: the project is published as **Takhtabush** under the MIT license. The unsandboxed `code` tool and `codemode:execute` scope were removed; MCP `tools/list` and the study widget resource are now scope-gated; the study-widget resource URI moved to `ui://takhtabush/study-session/v1.html`.
 - **Revision 11 (2026-10-30)** — mobile chat hosts: `render_study_session` now starts or resumes a session in the same call (`deckId` | `sessionId`) so the UI-linked tool is the only tool in a turn, which is the pattern ChatGPT mobile clients require. Its result text carries an absolute `/study/:sessionId` fallback link. The widget negotiates the MCP Apps protocol version (`2026-01-26`) instead of the core MCP version, declares `_meta.ui.csp` on the resource because hosts never see HTTP headers, and receives absolute media URLs.
+- **Revision 12 (2026-10-30)** — D1 cost engineering and organisation: flat `collections` replace the unused `folders` prototype (`decks.collection_id`, `ON DELETE SET NULL`, `position`); shared hard limits (500 cards/deck, 100/bulk create, 500 import rows, 20 tags, 200 decks/collection, 100 collections) are enforced on every API/MCP write with stable 409 codes; the study-session snapshot, import, bulk create, cleanup, and stats paths are batched (no query-per-row loops); `decks.card_count` is reserved atomically and `learning_state.deck_id` scopes due queries; the measured before/after model lives in `docs/developer/d1-cost-model.md`.
+- **Revision 13 (2026-10-30)** — D1 cost follow-ups: a separate `CACHE` KV namespace caches only the derived review streak (10-minute TTL) and global tag summary (5-minute TTL) and fails open when absent; `card_tags` indexes tag filters and is maintained on every card write; owner-wide front search uses a trigram FTS5 index with a `LIKE` fallback for short or already-bounded queries; and auth resolves the session and user in one `sessions JOIN users` query. Collection rename/reorder completes the deck-library UI. Measured before/after and the cache policy live in `docs/developer/d1-cost-model.md`.

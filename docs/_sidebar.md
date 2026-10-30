@@ -22,6 +22,7 @@
    - [Clef and AI Gateway](developer/clef.md)
    - [Contributing](developer/contributing.md)
    - [Agent feedback (Agentation)](developer/agent-feedback.md)
+   - [D1 cost model](developer/d1-cost-model.md)
 - **Reference**
    - [MCP tools](developer/reference/mcp-tools.md)
    - [HTTP API](developer/reference/api.md)

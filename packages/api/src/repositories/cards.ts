@@ -2,12 +2,53 @@ import { encodeCursor, decodeCursor } from '@caly/shared';
 import type { Card, CreateCardInput, UpdateCardInput } from '@caly/shared';
 import { newId, nowIso } from '@caly/worker-kit';
 import type { AppEnv } from '../env';
+import { chunk, D1_MAX_BOUND_PARAMS, placeholders } from '../lib/d1';
 import { mapCard } from '../lib/map';
+import {
+   cardTagDeleteStatements,
+   cardTagInsertStatements,
+   cardTagReplaceStatements,
+} from './card-tags';
+
+type Statement = ReturnType<D1Database['prepare']>;
+
+/** Statements per `db.batch()` call. Keeps one batch well under D1's limits. */
+const BATCH_STATEMENTS = 50;
+
+/**
+ * Ids per `IN (...)` read. One parameter is reserved for the owner id, and the
+ * remainder stays comfortably below D1's 100-bound-parameter ceiling.
+ */
+const IN_CHUNK = D1_MAX_BOUND_PARAMS - 10;
 
 export function getCardRow(env: AppEnv, id: string): Promise<Record<string, unknown> | null> {
    return env.DB.prepare('SELECT * FROM cards WHERE id = ? AND deleted_at IS NULL')
       .bind(id)
       .first<Record<string, unknown>>();
+}
+
+/**
+ * Batched card read for a known id list. One statement per `IN_CHUNK` ids, so
+ * a 500-card session costs six reads instead of 500. Never returns cards the
+ * caller does not own or that are soft-deleted.
+ */
+export async function getCardRowsByIds(
+   env: AppEnv,
+   ownerId: string,
+   ids: readonly string[],
+): Promise<Record<string, unknown>[]> {
+   const rows: Record<string, unknown>[] = [];
+   for (const batch of chunk(ids, IN_CHUNK)) {
+      if (batch.length === 0) continue;
+      const result = await env.DB.prepare(
+         `SELECT * FROM cards
+           WHERE owner_id = ? AND deleted_at IS NULL AND id IN (${placeholders(batch.length)})`,
+      )
+         .bind(ownerId, ...batch)
+         .all<Record<string, unknown>>();
+      rows.push(...(result.results ?? []));
+   }
+   return rows;
 }
 
 export async function listCards(
@@ -42,13 +83,20 @@ export async function listCards(
    };
 }
 
-/** Every tag string used on the user's live cards (for tag suggestions). */
-export async function listOwnedTagStrings(env: AppEnv, ownerId: string): Promise<string[]> {
-   const result = await env.DB.prepare(
-      'SELECT tags_json FROM cards WHERE owner_id = ? AND deleted_at IS NULL',
-   )
-      .bind(ownerId)
-      .all<{ tags_json: string }>();
+/** Every tag string used on the user's live cards (optionally one deck). */
+export async function listOwnedTagStrings(
+   env: AppEnv,
+   ownerId: string,
+   deckId?: string,
+): Promise<string[]> {
+   const statement = deckId
+      ? env.DB.prepare(
+           'SELECT tags_json FROM cards WHERE owner_id = ? AND deck_id = ? AND deleted_at IS NULL',
+        ).bind(ownerId, deckId)
+      : env.DB.prepare(
+           'SELECT tags_json FROM cards WHERE owner_id = ? AND deleted_at IS NULL',
+        ).bind(ownerId);
+   const result = await statement.all<{ tags_json: string }>();
 
    const tags: string[] = [];
    for (const row of result.results ?? []) {
@@ -83,14 +131,16 @@ export async function filterOwnedCardIds(
    ids: string[],
 ): Promise<string[]> {
    if (ids.length === 0) return [];
-   const placeholders = ids.map(() => '?').join(',');
-   const result = await env.DB.prepare(
-      `SELECT id FROM cards
-        WHERE owner_id = ? AND deck_id = ? AND deleted_at IS NULL AND id IN (${placeholders})`,
-   )
-      .bind(ownerId, deckId, ...ids)
-      .all<{ id: string }>();
-   const owned = new Set((result.results ?? []).map((row) => row.id));
+   const owned = new Set<string>();
+   for (const batch of chunk(ids, IN_CHUNK - 2)) {
+      const result = await env.DB.prepare(
+         `SELECT id FROM cards
+           WHERE owner_id = ? AND deck_id = ? AND deleted_at IS NULL AND id IN (${placeholders(batch.length)})`,
+      )
+         .bind(ownerId, deckId, ...batch)
+         .all<{ id: string }>();
+      for (const row of result.results ?? []) owned.add(row.id);
+   }
    return ids.filter((id) => owned.has(id));
 }
 
@@ -119,41 +169,101 @@ function cardFields(input: CreateCardInput) {
    ];
 }
 
+const INSERT_CARD_SQL = `INSERT INTO cards
+   (id, deck_id, owner_id, type, front, back, cloze_text, choices_json, correct_choice,
+    image_media_id, audio_media_id, tags_json, status, source, created_at, updated_at, deleted_at)
+ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`;
+
+function insertCardStatement(
+   env: AppEnv,
+   row: { id: string; deckId: string; ownerId: string; card: CreateCardInput },
+) {
+   const now = nowIso();
+   return env.DB.prepare(INSERT_CARD_SQL).bind(
+      row.id,
+      row.deckId,
+      row.ownerId,
+      ...cardFields(row.card),
+      now,
+      now,
+   );
+}
+
 export async function insertCard(
    env: AppEnv,
    input: { deckId: string; ownerId: string; card: CreateCardInput },
 ): Promise<Card> {
    const id = newId('card');
-   const now = nowIso();
-   await env.DB.prepare(
-      `INSERT INTO cards
-         (id, deck_id, owner_id, type, front, back, cloze_text, choices_json, correct_choice,
-          image_media_id, audio_media_id, tags_json, status, source, created_at, updated_at, deleted_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-   )
-      .bind(id, input.deckId, input.ownerId, ...cardFields(input.card), now, now)
-      .run();
+   const statements = [
+      insertCardStatement(env, { id, ...input }),
+      ...cardTagInsertStatements(env, [
+         {
+            cardId: id,
+            ownerId: input.ownerId,
+            deckId: input.deckId,
+            tags: input.card.tags ?? [],
+         },
+      ]),
+   ];
+   await env.DB.batch(statements);
    const row = await getCardRow(env, id);
    if (!row) throw new Error('Failed to create card');
    return mapCard(row);
+}
+
+/**
+ * Insert many cards with `db.batch()` (one subrequest per 50-card chunk).
+ * Callers reserve the deck's card slots first. Tag rows are added in the same
+ * batch as their card, so a card is never briefly missing from tag search.
+ */
+export async function insertCardRowsRaw(
+   env: AppEnv,
+   rows: Array<{ id: string; deckId: string; ownerId: string; card: CreateCardInput }>,
+): Promise<void> {
+   if (rows.length === 0) return;
+   for (const batch of chunk(rows, BATCH_STATEMENTS)) {
+      const tags = batch.map((row) => ({
+         cardId: row.id,
+         ownerId: row.ownerId,
+         deckId: row.deckId,
+         tags: row.card.tags ?? [],
+      }));
+      await env.DB.batch([
+         ...batch.map((row) => insertCardStatement(env, row)),
+         ...cardTagInsertStatements(env, tags),
+      ]);
+   }
+}
+
+/**
+ * Insert many cards and read the created rows back in one chunked query. Used
+ * by MCP bulk create; import only needs the counts and uses the raw variant.
+ */
+export async function insertCardRows(
+   env: AppEnv,
+   rows: Array<{ id: string; deckId: string; ownerId: string; card: CreateCardInput }>,
+): Promise<Card[]> {
+   if (rows.length === 0) return [];
+   await insertCardRowsRaw(env, rows);
+   const ids = rows.map((row) => row.id);
+   const byId = new Map(
+      (await getCardRowsByIds(env, rows[0]!.ownerId, ids)).map((row) => [String(row.id), row]),
+   );
+   return ids.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [mapCard(row)] : [];
+   });
 }
 
 export async function updateCard(
    env: AppEnv,
    id: string,
    patch: UpdateCardInput,
+   context?: { ownerId: string; deckId: string },
 ): Promise<Card | null> {
-   const map: Array<[keyof UpdateCardInput, string]> = [
-      ['front', 'front'],
-      ['back', 'back'],
-      ['clozeText', 'cloze_text'],
-      ['imageMediaId', 'image_media_id'],
-      ['audioMediaId', 'audio_media_id'],
-      ['status', 'status'],
-   ];
    const sets: string[] = [];
    const params: unknown[] = [];
-   for (const [key, column] of map) {
+   for (const [key, column] of CARD_UPDATE_COLUMNS) {
       if (patch[key] !== undefined) {
          sets.push(`${column} = ?`);
          params.push(patch[key]);
@@ -172,22 +282,106 @@ export async function updateCard(
       params.push(JSON.stringify(patch.tags));
    }
 
+   const statements: Statement[] = [];
    if (sets.length > 0) {
       sets.push('updated_at = ?');
       params.push(nowIso(), id);
-      await env.DB.prepare(`UPDATE cards SET ${sets.join(', ')} WHERE id = ?`)
-         .bind(...params)
-         .run();
+      statements.push(
+         env.DB.prepare(`UPDATE cards SET ${sets.join(', ')} WHERE id = ?`).bind(...params),
+      );
    }
+   if (patch.tags !== undefined) {
+      if (!context) {
+         throw new Error('updateCard requires ownerId and deckId when tags change');
+      }
+      statements.push(
+         ...cardTagReplaceStatements(env, [
+            { cardId: id, ownerId: context.ownerId, deckId: context.deckId, tags: patch.tags },
+         ]),
+      );
+   }
+   if (statements.length > 0) await env.DB.batch(statements);
+
    const row = await getCardRow(env, id);
    return row ? mapCard(row) : null;
 }
 
+const CARD_UPDATE_COLUMNS: Array<[keyof UpdateCardInput, string]> = [
+   ['front', 'front'],
+   ['back', 'back'],
+   ['clozeText', 'cloze_text'],
+   ['imageMediaId', 'image_media_id'],
+   ['audioMediaId', 'audio_media_id'],
+   ['status', 'status'],
+];
+
+/**
+ * Apply import updates and their revision snapshots in batched subrequests.
+ * Import used to call `patchCard` per row (four statements each); this keeps
+ * the statement count proportional to batches instead of rows.
+ */
+export async function updateCardRows(
+   env: AppEnv,
+   updates: Array<{
+      cardId: string;
+      ownerId: string;
+      deckId: string;
+      authorId: string;
+      snapshot: Record<string, unknown>;
+      patch: UpdateCardInput;
+   }>,
+): Promise<void> {
+   if (updates.length === 0) return;
+   const statements = updates.flatMap((update) => {
+      const now = nowIso();
+      const sets: string[] = [];
+      const params: unknown[] = [];
+      for (const [key, column] of CARD_UPDATE_COLUMNS) {
+         if (update.patch[key] !== undefined) {
+            sets.push(`${column} = ?`);
+            params.push(update.patch[key]);
+         }
+      }
+      if (update.patch.tags !== undefined) {
+         sets.push('tags_json = ?');
+         params.push(JSON.stringify(update.patch.tags));
+      }
+      sets.push('updated_at = ?');
+      params.push(now, update.cardId);
+      return [
+         env.DB.prepare(
+            `INSERT INTO card_revisions (id, card_id, author_id, snapshot_json, created_at)
+             VALUES (?, ?, ?, ?, ?)`,
+         ).bind(newId('rev'), update.cardId, update.authorId, JSON.stringify(update.snapshot), now),
+         env.DB.prepare(`UPDATE cards SET ${sets.join(', ')} WHERE id = ?`).bind(...params),
+      ];
+   });
+
+   const tagRows = updates
+      .filter((update) => update.patch.tags !== undefined)
+      .map((update) => ({
+         cardId: update.cardId,
+         ownerId: update.ownerId,
+         deckId: update.deckId,
+         tags: update.patch.tags ?? [],
+      }));
+
+   const all = [...statements, ...cardTagReplaceStatements(env, tagRows)];
+   for (const batch of chunk(all, BATCH_STATEMENTS)) {
+      await env.DB.batch(batch);
+   }
+}
+
 export async function softDeleteCard(env: AppEnv, id: string): Promise<void> {
    const now = nowIso();
-   await env.DB.prepare('UPDATE cards SET deleted_at = ?, updated_at = ? WHERE id = ?')
-      .bind(now, now, id)
-      .run();
+   await env.DB.batch([
+      env.DB.prepare('UPDATE cards SET deleted_at = ?, updated_at = ? WHERE id = ?').bind(
+         now,
+         now,
+         id,
+      ),
+      ...cardTagDeleteStatements(env, [id]),
+   ]);
 }
 
 /** A card row regardless of soft-delete state (used to restore). */
@@ -200,10 +394,24 @@ export function getCardRowIncludingDeleted(
       .first<Record<string, unknown>>();
 }
 
-export async function restoreCard(env: AppEnv, id: string): Promise<void> {
-   await env.DB.prepare('UPDATE cards SET deleted_at = NULL, updated_at = ? WHERE id = ?')
-      .bind(nowIso(), id)
-      .run();
+export async function restoreCard(
+   env: AppEnv,
+   input: { cardId: string; ownerId: string; deckId: string; tags: readonly string[] },
+): Promise<void> {
+   await env.DB.batch([
+      env.DB.prepare('UPDATE cards SET deleted_at = NULL, updated_at = ? WHERE id = ?').bind(
+         nowIso(),
+         input.cardId,
+      ),
+      ...cardTagReplaceStatements(env, [
+         {
+            cardId: input.cardId,
+            ownerId: input.ownerId,
+            deckId: input.deckId,
+            tags: input.tags,
+         },
+      ]),
+   ]);
 }
 
 export async function insertCardRevision(
@@ -219,9 +427,25 @@ export async function insertCardRevision(
 
 export type CardSearchRow = Record<string, unknown> & { due_state: string };
 
+/** The trigram tokenizer only matches queries of three or more characters. */
+const FTS_MIN_QUERY_LENGTH = 3;
+
+/**
+ * Build a quoted FTS5 phrase for the front column. Quoting keeps operators and
+ * punctuation literal; the trigram tokenizer turns it into a substring match.
+ * Returns null when the query is too short and the caller should use LIKE.
+ */
+export function ftsMatchExpression(query: string): string | null {
+   const trimmed = query.trim();
+   if (Array.from(trimmed).length < FTS_MIN_QUERY_LENGTH) return null;
+   return `front : "${trimmed.replace(/"/g, '""')}"`;
+}
+
 /**
  * MCP search across cards with optional filters, keyset pagination, and the
  * due-state computed in SQL (avoids an N+1 learning-state lookup per card).
+ * Tag filters probe `card_tags`; text search uses the trigram FTS index, with
+ * `LIKE` only for queries shorter than the tokenizer minimum.
  */
 export async function searchCardsPage(
    env: AppEnv,
@@ -240,23 +464,47 @@ export async function searchCardsPage(
    const decoded = opts.cursor ? decodeCursor(opts.cursor) : null;
 
    // Inner params: CASE due-date param, join user param, then WHERE params.
-   const innerParams: unknown[] = [now, opts.ownerId, opts.ownerId];
-   let where = 'c.owner_id = ? AND c.deleted_at IS NULL';
+   const innerParams: unknown[] = [now, opts.ownerId];
+   const where: string[] = ['c.owner_id = ?', 'c.deleted_at IS NULL'];
+   innerParams.push(opts.ownerId);
+   let from = 'cards c';
+
+   // `CROSS JOIN` fixes the driving table. Without it SQLite scans every card
+   // the owner has and only then tests the tag/FTS membership, which is the
+   // scan these indexes exist to remove.
+   if (opts.tag) {
+      from = 'card_tags ct CROSS JOIN cards c ON c.id = ct.card_id';
+      where.push('ct.owner_id = ?');
+      innerParams.push(opts.ownerId);
+      if (opts.deckId) {
+         where.push('ct.deck_id = ?');
+         innerParams.push(opts.deckId);
+      }
+      where.push('ct.tag = ?');
+      innerParams.push(opts.tag.trim());
+   }
+
    if (opts.deckId) {
-      where += ' AND c.deck_id = ?';
+      where.push('c.deck_id = ?');
       innerParams.push(opts.deckId);
    }
    if (opts.status) {
-      where += ' AND c.status = ?';
+      where.push('c.status = ?');
       innerParams.push(opts.status);
    }
    if (opts.query) {
-      where += ' AND c.front LIKE ?';
-      innerParams.push(`%${opts.query}%`);
-   }
-   if (opts.tag) {
-      where += ' AND c.tags_json LIKE ?';
-      innerParams.push(`%"${opts.tag}"%`);
+      const match = ftsMatchExpression(opts.query);
+      // FTS pays off only for the owner-wide scan. A deck or tag filter already
+      // narrows the candidate set to a bounded range, where LIKE is cheaper
+      // than probing a cross-deck FTS result.
+      if (match && !opts.tag && !opts.deckId) {
+         from = 'cards_fts CROSS JOIN cards c ON c.rowid = cards_fts.rowid';
+         where.push('cards_fts MATCH ?');
+         innerParams.push(match);
+      } else {
+         where.push('c.front LIKE ?');
+         innerParams.push(`%${opts.query}%`);
+      }
    }
 
    const inner = `SELECT c.*, CASE
@@ -265,9 +513,9 @@ export async function searchCardsPage(
         WHEN ls.due_at IS NOT NULL AND ls.due_at <= ? THEN 'due'
         ELSE 'scheduled'
       END AS due_state
-     FROM cards c
+     FROM ${from}
      LEFT JOIN learning_state ls ON ls.card_id = c.id AND ls.user_id = ?
-     WHERE ${where}`;
+     WHERE ${where.join(' AND ')}`;
 
    const outerParams: unknown[] = [];
    let outerWhere = '1=1';

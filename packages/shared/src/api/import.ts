@@ -32,9 +32,6 @@ export class ImportParseError extends Error {
    }
 }
 
-/** Rows beyond this are skipped to bound import cost. */
-export const MAX_IMPORT_ROWS = 2000;
-
 function splitDelimitedLine(line: string, delimiter: string): string[] {
    const fields: string[] = [];
    let current = '';

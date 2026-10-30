@@ -23,7 +23,7 @@ const MOUNTS: Array<{
    { prefix: '/api/v1/sessions', file: 'sessions.ts', auth: 'Session or bearer' },
    { prefix: '/api/v1/decks', file: 'decks.ts', auth: 'Session or bearer' },
    { prefix: '/api/v1/cards', file: 'cards.ts', auth: 'Session or bearer' },
-   { prefix: '/api/v1/folders', file: 'folders.ts', auth: 'Session or bearer' },
+   { prefix: '/api/v1/collections', file: 'collections.ts', auth: 'Session or bearer' },
    { prefix: '/api/v1/tags', file: 'tags.ts', auth: 'Session or bearer' },
    { prefix: '/api/v1/media', file: 'media.ts', auth: 'Session or bearer' },
    { prefix: '/api/v1/study', file: 'study.ts', auth: 'Session or bearer' },

@@ -1,11 +1,13 @@
 import { newId, nowIso } from '@caly/worker-kit';
 import type { LearningState, ReviewEvent, StudySession, WeakCard } from '@caly/shared';
 import type { AppEnv } from '../env';
+import { chunk, D1_MAX_BOUND_PARAMS, placeholders } from '../lib/d1';
 import { mapReviewEvent, mapSession } from '../lib/map';
 
 export type LearningStateRow = {
    user_id: string;
    card_id: string;
+   deck_id: string | null;
    scheduler_version: number;
    state_json: string;
    due_at: string | null;
@@ -168,6 +170,19 @@ export async function listReviewedCardIds(env: AppEnv, sessionId: string): Promi
    return new Set((result.results ?? []).map((row) => row.card_id));
 }
 
+/**
+ * How many distinct planned cards the session has reviewed. One aggregate
+ * instead of loading every reviewed id just to compute `remaining`.
+ */
+export async function countReviewedCards(env: AppEnv, sessionId: string): Promise<number> {
+   const row = await env.DB.prepare(
+      'SELECT COUNT(DISTINCT card_id) AS count FROM review_events WHERE session_id = ?',
+   )
+      .bind(sessionId)
+      .first<{ count: number }>();
+   return Number(row?.count ?? 0);
+}
+
 export function getLearningState(
    env: AppEnv,
    userId: string,
@@ -178,12 +193,23 @@ export function getLearningState(
       .first<LearningStateRow>();
 }
 
-export async function upsertLearningState(env: AppEnv, state: LearningState): Promise<void> {
+/**
+ * Upsert derived state. `deck_id` is stored alongside the card so per-deck due
+ * counts and forecasts use `idx_learning_deck_due` instead of scanning every
+ * due row the user has. It is a denormalized copy of `cards.deck_id`; the
+ * rebuild-from-events path can always restore it.
+ */
+export async function upsertLearningState(
+   env: AppEnv,
+   state: LearningState,
+   deckId: string,
+): Promise<void> {
    await env.DB.prepare(
       `INSERT INTO learning_state
-         (user_id, card_id, scheduler_version, state_json, due_at, interval_days, ease, repetitions, lapses, last_reviewed_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (user_id, card_id, deck_id, scheduler_version, state_json, due_at, interval_days, ease, repetitions, lapses, last_reviewed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(user_id, card_id) DO UPDATE SET
+         deck_id = excluded.deck_id,
          scheduler_version = excluded.scheduler_version,
          state_json = excluded.state_json,
          due_at = excluded.due_at,
@@ -196,6 +222,7 @@ export async function upsertLearningState(env: AppEnv, state: LearningState): Pr
       .bind(
          state.userId,
          state.cardId,
+         deckId,
          state.schedulerVersion,
          JSON.stringify(state.state),
          state.dueAt,
@@ -253,11 +280,11 @@ export async function getDeckStudySummary(
 
    const dueRow = await env.DB.prepare(
       `SELECT COUNT(*) AS count FROM cards c
-        JOIN learning_state ls ON ls.card_id = c.id AND ls.user_id = ?
-        WHERE c.deck_id = ? AND c.deleted_at IS NULL AND c.status = 'active'
+        JOIN learning_state ls INDEXED BY idx_learning_deck_due ON ls.card_id = c.id AND ls.user_id = ?
+        WHERE ls.deck_id = ? AND c.deck_id = ? AND c.deleted_at IS NULL AND c.status = 'active'
           AND ls.due_at IS NOT NULL AND ls.due_at <= ?`,
    )
-      .bind(userId, deckId, now)
+      .bind(userId, deckId, deckId, now)
       .first<{ count: number }>();
 
    return {
@@ -273,19 +300,47 @@ export async function deckDueCounts(
    env: AppEnv,
    userId: string,
    now: string,
+   deckIds?: readonly string[],
 ): Promise<Record<string, number>> {
-   const result = await env.DB.prepare(
-      `SELECT c.deck_id AS deck_id, COUNT(*) AS count
-         FROM cards c
-         JOIN learning_state ls ON ls.card_id = c.id AND ls.user_id = ?
-        WHERE c.deleted_at IS NULL AND c.status = 'active'
-          AND ls.due_at IS NOT NULL AND ls.due_at <= ?
-        GROUP BY c.deck_id`,
-   )
-      .bind(userId, now)
-      .all<{ deck_id: string; count: number }>();
    const counts: Record<string, number> = {};
-   for (const row of result.results ?? []) counts[row.deck_id] = Number(row.count);
+   const collect = (rows: Array<{ deck_id: string; count: number }>) => {
+      for (const row of rows) counts[row.deck_id] = Number(row.count);
+   };
+
+   if (deckIds && deckIds.length === 0) return counts;
+
+   if (!deckIds) {
+      const result = await env.DB.prepare(
+         `SELECT ls.deck_id AS deck_id, COUNT(*) AS count
+            FROM learning_state ls INDEXED BY idx_learning_deck_due
+            JOIN cards c ON c.id = ls.card_id
+           WHERE ls.user_id = ? AND c.deleted_at IS NULL AND c.status = 'active'
+             AND ls.deck_id IS NOT NULL
+             AND ls.due_at IS NOT NULL AND ls.due_at <= ?
+           GROUP BY ls.deck_id`,
+      )
+         .bind(userId, now)
+         .all<{ deck_id: string; count: number }>();
+      collect(result.results ?? []);
+      return counts;
+   }
+
+   // Scope the aggregate to the page's decks. One parameter is the user, so a
+   // chunk holds `D1_MAX_BOUND_PARAMS - 2` deck ids.
+   for (const batch of chunk(deckIds, D1_MAX_BOUND_PARAMS - 2)) {
+      const result = await env.DB.prepare(
+         `SELECT ls.deck_id AS deck_id, COUNT(*) AS count
+            FROM learning_state ls INDEXED BY idx_learning_deck_due
+            JOIN cards c ON c.id = ls.card_id
+           WHERE ls.user_id = ? AND ls.deck_id IN (${placeholders(batch.length)})
+             AND c.deleted_at IS NULL AND c.status = 'active'
+             AND ls.due_at IS NOT NULL AND ls.due_at <= ?
+           GROUP BY ls.deck_id`,
+      )
+         .bind(userId, ...batch, now)
+         .all<{ deck_id: string; count: number }>();
+      collect(result.results ?? []);
+   }
    return counts;
 }
 
@@ -315,13 +370,13 @@ export async function listDueCardIds(
 ): Promise<string[]> {
    const result = await env.DB.prepare(
       `SELECT c.id FROM cards c
-         JOIN learning_state ls ON ls.card_id = c.id AND ls.user_id = ?
-        WHERE c.deck_id = ? AND c.deleted_at IS NULL AND c.status = 'active'
+         JOIN learning_state ls INDEXED BY idx_learning_deck_due ON ls.card_id = c.id AND ls.user_id = ?
+        WHERE ls.deck_id = ? AND c.deck_id = ? AND c.deleted_at IS NULL AND c.status = 'active'
           AND ls.due_at IS NOT NULL AND ls.due_at <= ?
         ORDER BY ls.due_at ASC
         LIMIT ?`,
    )
-      .bind(userId, deckId, now, limit)
+      .bind(userId, deckId, deckId, now, limit)
       .all<{ id: string }>();
    return (result.results ?? []).map((row) => row.id);
 }
@@ -345,7 +400,12 @@ export async function listNewCardIds(
    return (result.results ?? []).map((row) => row.id);
 }
 
-/** Lowest-accuracy cards in the deck, worst first. */
+/**
+ * Lowest-accuracy cards in the deck, worst first. `CROSS JOIN` stops SQLite
+ * from reordering the join: the deck's (bounded) card set drives and probes
+ * `idx_reviews_user_card` per card. Starting from `review_events` scanned every
+ * event the user had ever recorded, across all decks.
+ */
 export async function listWeakCardIds(
    env: AppEnv,
    userId: string,
@@ -354,15 +414,16 @@ export async function listWeakCardIds(
 ): Promise<string[]> {
    const result = await env.DB.prepare(
       `SELECT c.id AS id, AVG(r.is_correct) AS accuracy
-         FROM review_events r
-         JOIN cards c ON c.id = r.card_id
-        WHERE r.user_id = ? AND c.deck_id = ? AND c.deleted_at IS NULL AND c.status = 'active'
+         FROM cards c
+        CROSS JOIN review_events r
+        WHERE c.deck_id = ? AND c.deleted_at IS NULL AND c.status = 'active'
+          AND r.user_id = ? AND r.card_id = c.id
         GROUP BY c.id
        HAVING AVG(r.is_correct) < 0.8
         ORDER BY accuracy ASC
         LIMIT ?`,
    )
-      .bind(userId, deckId, limit)
+      .bind(deckId, userId, limit)
       .all<{ id: string }>();
    return (result.results ?? []).map((row) => row.id);
 }
@@ -374,11 +435,12 @@ export async function getReviewAggregate(
 ): Promise<{ total: number; correct: number }> {
    const row = await env.DB.prepare(
       `SELECT COUNT(*) AS total, COALESCE(SUM(r.is_correct), 0) AS correct
-         FROM review_events r
-         JOIN cards c ON c.id = r.card_id
-        WHERE r.user_id = ? AND c.deck_id = ? AND c.deleted_at IS NULL`,
+         FROM cards c
+        CROSS JOIN review_events r
+        WHERE c.deck_id = ? AND c.deleted_at IS NULL
+          AND r.user_id = ? AND r.card_id = c.id`,
    )
-      .bind(userId, deckId)
+      .bind(deckId, userId)
       .first<{ total: number; correct: number }>();
    return { total: Number(row?.total ?? 0), correct: Number(row?.correct ?? 0) };
 }
@@ -392,15 +454,15 @@ export async function getDueForecast(
 ): Promise<Array<{ date: string; count: number }>> {
    const result = await env.DB.prepare(
       `SELECT substr(ls.due_at, 1, 10) AS date, COUNT(*) AS count
-         FROM learning_state ls
+         FROM learning_state ls INDEXED BY idx_learning_deck_due
          JOIN cards c ON c.id = ls.card_id
-        WHERE ls.user_id = ? AND c.deck_id = ? AND c.deleted_at IS NULL
+        WHERE ls.user_id = ? AND ls.deck_id = ? AND c.deck_id = ? AND c.deleted_at IS NULL
           AND ls.due_at IS NOT NULL AND ls.due_at >= ?
         GROUP BY date
         ORDER BY date ASC
         LIMIT ?`,
    )
-      .bind(userId, deckId, now, days)
+      .bind(userId, deckId, deckId, now, days)
       .all<{ date: string; count: number }>();
    return (result.results ?? []).map((row) => ({ date: row.date, count: Number(row.count) }));
 }
@@ -412,16 +474,18 @@ export async function getWeakCards(
    limit: number,
 ): Promise<WeakCard[]> {
    const result = await env.DB.prepare(
-      `SELECT c.id AS card_id, c.front AS front, AVG(r.is_correct) AS accuracy, ls.lapses AS lapses
-         FROM review_events r
-         JOIN cards c ON c.id = r.card_id
+      `SELECT c.id AS card_id, c.front AS front, AVG(r.is_correct) AS accuracy,
+              MAX(ls.lapses) AS lapses
+         FROM cards c
+        CROSS JOIN review_events r
          LEFT JOIN learning_state ls ON ls.card_id = c.id AND ls.user_id = ?
-        WHERE r.user_id = ? AND c.deck_id = ? AND c.deleted_at IS NULL
+        WHERE c.deck_id = ? AND c.deleted_at IS NULL
+          AND r.user_id = ? AND r.card_id = c.id
         GROUP BY c.id
         ORDER BY accuracy ASC
         LIMIT ?`,
    )
-      .bind(userId, userId, deckId, limit)
+      .bind(userId, deckId, userId, limit)
       .all<{ card_id: string; front: string; accuracy: number; lapses: number | null }>();
    return (result.results ?? []).map((row) => ({
       cardId: row.card_id,
@@ -431,13 +495,23 @@ export async function getWeakCards(
    }));
 }
 
-/** Consecutive days (UTC) ending today or yesterday on which the user reviewed. */
+/** Longest streak the stats screen reports; also bounds the rows it scans. */
+export const MAX_STREAK_DAYS = 400;
+
+/**
+ * Consecutive days (UTC) ending today or yesterday on which the user reviewed.
+ * The window keeps the scan bounded; `idx_reviews_user_time` serves it.
+ */
 export async function getReviewStreak(env: AppEnv, userId: string): Promise<number> {
+   const cutoff = new Date(Date.now() - MAX_STREAK_DAYS * 86_400_000).toISOString();
    const result = await env.DB.prepare(
       `SELECT DISTINCT substr(reviewed_at, 1, 10) AS day
-         FROM review_events WHERE user_id = ? ORDER BY day DESC LIMIT 400`,
+         FROM review_events
+        WHERE user_id = ? AND reviewed_at >= ?
+        ORDER BY day DESC
+        LIMIT ?`,
    )
-      .bind(userId)
+      .bind(userId, cutoff, MAX_STREAK_DAYS)
       .all<{ day: string }>();
    const days = new Set((result.results ?? []).map((row) => row.day));
    if (days.size === 0) return 0;
@@ -450,7 +524,7 @@ export async function getReviewStreak(env: AppEnv, userId: string): Promise<numb
    }
 
    let streak = 0;
-   while (days.has(iso(cursor))) {
+   while (days.has(iso(cursor)) && streak < MAX_STREAK_DAYS) {
       streak += 1;
       cursor.setUTCDate(cursor.getUTCDate() - 1);
    }

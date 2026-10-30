@@ -4,7 +4,8 @@ import { newId } from '@caly/worker-kit';
 import type { AppBindings } from '../env';
 import { hashToken } from '../lib/crypto';
 import { unauthorized } from '../lib/errors';
-import { getUserById, mapUserRow } from '../repositories/users';
+import { findActiveSessionUser } from '../repositories/sessions';
+import { mapUserRow } from '../repositories/users';
 
 export const SESSION_COOKIE = 'sid';
 export const CSRF_COOKIE = 'csrf';
@@ -57,20 +58,10 @@ export const sessionMiddleware: MiddlewareHandler<AppBindings> = async (c, next)
 
    if (token) {
       const tokenHash = await hashToken(c.env.SESSION_SECRET, token);
-      const row = await c.env.DB.prepare(
-         `SELECT id, user_id FROM sessions
-           WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?
-           LIMIT 1`,
-      )
-         .bind(tokenHash, new Date().toISOString())
-         .first<{ id: string; user_id: string }>();
-
+      const row = await findActiveSessionUser(c.env, tokenHash);
       if (row) {
-         const userRow = await getUserById(c.env, row.user_id);
-         if (userRow) {
-            c.set('user', mapUserRow(userRow));
-            c.set('sessionId', row.id);
-         }
+         c.set('user', mapUserRow(row));
+         c.set('sessionId', row.session_id);
       }
    }
 

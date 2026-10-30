@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idSchema, isoDateSchema } from './common';
+import { MAX_CARDS_PER_DECK } from '../domain/limits';
 import { learningStateSchema } from '../domain/scheduler';
 import { studyPlanSchema } from '../domain/journey';
 import {
@@ -56,7 +57,7 @@ export const startSessionInputSchema = z.object({
    mode: studyModeSchema.default('flashcards'),
    goal: studyGoalSchema.default('learn'),
    minutes: z.number().int().min(1).max(180).default(15),
-   cardIds: z.array(idSchema).max(500).optional(),
+   cardIds: z.array(idSchema).max(MAX_CARDS_PER_DECK).optional(),
 });
 
 export type StartSessionInput = z.infer<typeof startSessionInputSchema>;

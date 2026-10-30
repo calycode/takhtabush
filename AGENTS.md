@@ -41,6 +41,7 @@
 - All timestamps are ISO-8601 strings; all identifiers are prefixed (`deck_…`, `card_…`).
 - `review_events` are append-only; `learning_state` is derived and rebuildable from events (SPEC D4).
 - Ownership is enforced in services via `owner_id`/`user_id`; never trust client-supplied ownership.
+- Bounded-work limits live in `packages/shared/src/domain/limits.ts`. Enforce them in services with the shared constants and stable error codes; never trust the client and never recount `decks.card_count` (reserve slots atomically). Collections are flat; do not add parent ids.
 
 ## Scheduler rules
 
