@@ -11,12 +11,14 @@ import {
    mcpImportDeckInputSchema,
    mcpListInputSchema,
    mcpRecordReviewInputSchema,
+   mcpRenderStudySessionInputSchema,
    mcpSearchCardsInputSchema,
    mcpStartSessionInputSchema,
    mcpUpdateCardInputSchema,
    type McpServices,
    type McpToolName,
    type McpScope,
+   type StudySessionSnapshot,
 } from '@caly/shared';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -88,6 +90,41 @@ export function toolResultMeta(name: McpToolName) {
 }
 
 /**
+ * Render or resume a session in one call. ChatGPT's mobile clients drop a
+ * widget whose tool follows another tool in the same turn, so session creation
+ * happens here instead of in a separate `start_study_session` (SPEC §9.8).
+ */
+async function renderStudySession(
+   args: unknown,
+   ctx: ToolContext,
+): Promise<{ snapshot: StudySessionSnapshot; created: boolean }> {
+   const input = mcpRenderStudySessionInputSchema.parse(args);
+   let sessionId = input.sessionId;
+   let created = false;
+
+   if (!sessionId) {
+      if (!input.deckId) {
+         throw new McpToolError('Provide deckId to start a session, or sessionId to resume one.');
+      }
+      // Creating a session is a write, even though the tool itself only renders.
+      if (!ctx.scopes.includes('study:write')) throw missingScope('study:write');
+      const session = await ctx.services.startStudySession({
+         deckId: input.deckId,
+         mode: input.mode,
+         goal: input.goal,
+         minutes: input.minutes,
+         ...(input.cardIds ? { cardIds: input.cardIds } : {}),
+      });
+      sessionId = session.id;
+      created = true;
+   }
+
+   const snapshot = await ctx.services.getStudySession(sessionId);
+   if (!snapshot) throw new McpToolError('Study session not found.');
+   return { snapshot, created };
+}
+
+/**
  * Dispatch a tool call against the injected services. Enforces the required
  * scope and writes an audit record for every mutating tool (SPEC §9.3, §9.7).
  */
@@ -100,6 +137,8 @@ export async function callTool(
    if (!ctx.scopes.includes(scope)) throw missingScope(scope);
 
    let output: unknown;
+   /** `render_study_session` also writes when it starts the session. */
+   let createdSession = false;
 
    switch (name) {
       case 'list_decks':
@@ -147,19 +186,24 @@ export async function callTool(
       case 'record_review':
          output = await ctx.services.recordReview(mcpRecordReviewInputSchema.parse(args));
          break;
-      case 'get_study_session':
-      case 'render_study_session': {
+      case 'get_study_session': {
          const { sessionId } = mcpGetStudySessionInputSchema.parse(args);
          const snapshot = await ctx.services.getStudySession(sessionId);
          if (!snapshot) throw new McpToolError('Study session not found.');
          output = snapshot;
          break;
       }
+      case 'render_study_session': {
+         const rendered = await renderStudySession(args, ctx);
+         output = rendered.snapshot;
+         createdSession = rendered.created;
+         break;
+      }
       default:
          throw new McpError(-32602, `Unknown tool: ${String(name)}`);
    }
 
-   if (WRITE_TOOLS.has(name)) {
+   if (WRITE_TOOLS.has(name) || createdSession) {
       await ctx.services.recordAudit({
          userId: ctx.userId,
          toolName: name,

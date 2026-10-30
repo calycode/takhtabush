@@ -190,6 +190,68 @@ describe('mcp server', () => {
       expect(body.result._meta?.ui?.resourceUri).toBe(MCP_STUDY_WIDGET_RESOURCE_URI);
    });
 
+   it('starts and renders a session in one call, with an absolute fallback link', async () => {
+      const services = stubServices();
+      vi.mocked(services.startStudySession).mockResolvedValue({ id: 'stu_1' } as never);
+
+      const res = await handleMcpRequest(
+         post({
+            jsonrpc: '2.0',
+            id: 12,
+            method: 'tools/call',
+            params: { name: 'render_study_session', arguments: { deckId: 'deck_1' } },
+         }),
+         { ...ctx, services, scopes: [...ctx.scopes] },
+      );
+      const body = (await res.json()) as {
+         result: {
+            content: Array<{ text: string }>;
+            structuredContent: { sessionId: string };
+            _meta?: { ui?: { resourceUri?: string } };
+         };
+      };
+      expect(services.startStudySession).toHaveBeenCalledWith(
+         expect.objectContaining({ deckId: 'deck_1', mode: 'flashcards' }),
+      );
+      expect(body.result.structuredContent.sessionId).toBe('stu_1');
+      expect(body.result._meta?.ui?.resourceUri).toBe(MCP_STUDY_WIDGET_RESOURCE_URI);
+      expect(body.result.content[0]?.text).toContain('https://example.com/study/stu_1');
+      expect(services.recordAudit).toHaveBeenCalledWith(
+         expect.objectContaining({ toolName: 'render_study_session' }),
+      );
+   });
+
+   it('requires study:write before render_study_session may start a session', async () => {
+      const res = await handleMcpRequest(
+         post({
+            jsonrpc: '2.0',
+            id: 13,
+            method: 'tools/call',
+            params: { name: 'render_study_session', arguments: { deckId: 'deck_1' } },
+         }),
+         { ...ctx, scopes: ['study:render'] },
+      );
+      const body = (await res.json()) as { error: { code: number } };
+      expect(body.error.code).toBe(-32003);
+   });
+
+   it('asks for a deck or session when neither is supplied', async () => {
+      const res = await handleMcpRequest(
+         post({
+            jsonrpc: '2.0',
+            id: 14,
+            method: 'tools/call',
+            params: { name: 'render_study_session', arguments: {} },
+         }),
+         { ...ctx, scopes: [...ctx.scopes] },
+      );
+      const body = (await res.json()) as {
+         result: { isError: boolean; content: Array<{ text: string }> };
+      };
+      expect(body.result.isError).toBe(true);
+      expect(body.result.content[0]?.text).toContain('deckId');
+   });
+
    it('rejects resource reads without the render scope', async () => {
       const res = await handleMcpRequest(
          post({

@@ -13,6 +13,13 @@ export const MCP_STUDY_WIDGET_RESOURCE_URI = 'ui://takhtabush/study-session/v1.h
 export const MCP_STUDY_WIDGET_HTTP_PATH = '/mcp-apps/study-session/v1.html';
 export const MCP_STUDY_WIDGET_MIME_TYPE = 'text/html;profile=mcp-app';
 
+/**
+ * MCP Apps protocol version the widget negotiates in `ui/initialize`. This is
+ * the UI extension's version, not the core MCP version (`2025-06-18`): hosts
+ * reject the handshake when the two are confused.
+ */
+export const MCP_APPS_PROTOCOL_VERSION = '2026-01-26';
+
 /** Resource descriptor returned by `resources/list` (MCP Apps, SPEC §9.8). */
 export type McpUiResource = {
    uri: string;
@@ -26,6 +33,28 @@ export type McpUiResourceContent = {
    uri: string;
    mimeType: string;
    text: string;
+   /**
+    * Hosts apply their own CSP to injected HTML, so the widget's network
+    * origins must be declared here — an HTTP header is not seen by the host.
+    */
+   _meta?: {
+      ui?: {
+         csp?: McpUiResourceCsp;
+         prefersBorder?: boolean;
+      };
+   };
+};
+
+/** Which origins an MCP Apps resource may reach (MCP Apps `_meta.ui.csp`). */
+export type McpUiResourceCsp = {
+   /** `connect-src`: fetch/XHR/WebSocket origins. Omitted means none. */
+   connectDomains?: string[];
+   /** `img-src`/`media-src`/`script-src`/`style-src`: static asset origins. */
+   resourceDomains?: string[];
+   /** `frame-src`: nested iframe origins. */
+   frameDomains?: string[];
+   /** `base-uri`: allowed document base origins. */
+   baseUriDomains?: string[];
 };
 
 export const MCP_STUDY_WIDGET_RESOURCE: McpUiResource = {

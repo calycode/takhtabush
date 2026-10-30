@@ -135,7 +135,21 @@ export const mcpGetStudyPlanInputSchema = z.object({
 
 /** Session snapshot inputs (SPEC §9.8, [R6]). */
 export const mcpGetStudySessionInputSchema = z.object({ sessionId: idSchema });
-export const mcpRenderStudySessionInputSchema = z.object({ sessionId: idSchema });
+
+/**
+ * `render_study_session` starts or resumes a session and returns the widget in
+ * the same call. ChatGPT's mobile clients drop a UI-linked tool that follows
+ * another tool in the same turn, so rendering must not depend on a preceding
+ * `start_study_session`.
+ */
+export const mcpRenderStudySessionInputSchema = z.object({
+   sessionId: idSchema.optional(),
+   deckId: idSchema.optional(),
+   mode: studyModeSchema.default('flashcards'),
+   goal: studyGoalSchema.default('learn'),
+   minutes: z.number().int().min(1).max(180).default(15),
+   cardIds: z.array(idSchema).max(500).optional(),
+});
 
 /** Audit record written for every MCP write (SPEC §9.7). */
 export const mcpAuditEventSchema = z.object({
@@ -273,7 +287,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
       name: 'start_study_session',
       scope: 'study:write',
       description:
-         'Start a study session. `mode` supports flashcards, multiple_choice, typed, matching, cloze, and mixed; `goal` supports learn, review, cram, retain, and diagnose. Use `goal: "cram"` to revise every active card and `mode: "matching"` for pair matching.',
+         'Start a study session without UI. `mode` supports flashcards, multiple_choice, typed, matching, cloze, and mixed; `goal` supports learn, review, cram, retain, and diagnose. Use `goal: "cram"` to revise every active card and `mode: "matching"` for pair matching. When the user wants to study in chat, call `render_study_session` once instead of this tool followed by a render call.',
       inputSchema: mcpStartSessionInputSchema,
    },
    {
@@ -292,7 +306,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
       name: 'render_study_session',
       scope: 'study:render',
       description:
-         'Return the MCP Apps study widget for an existing session. It renders flashcards, auto-graded choice/typed/cloze, and the two matching layouts (pairs or choice).',
+         'Render an interactive study session as the MCP Apps widget: pass `deckId` to start a session (plus optional `mode`, `goal`, `minutes`) or `sessionId` to resume one. Call this as the only tool in the turn — mobile ChatGPT clients do not render a widget whose tool follows another tool call, so do not call `start_study_session` first.',
       inputSchema: mcpRenderStudySessionInputSchema,
       meta: { ui: { resourceUri: MCP_STUDY_WIDGET_RESOURCE_URI } },
    },

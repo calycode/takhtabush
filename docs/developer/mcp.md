@@ -46,6 +46,17 @@ to no scopes rather than widening to the key's full grant.
 
 The `resources/list` and `resources/read` calls require `study:render`.
 
+`render_study_session` also starts the session when it is given `deckId` instead
+of `sessionId`. Creating a session is a write, so that path additionally requires
+`study:write`. The tool is deliberately self-sufficient, because ChatGPT's mobile
+clients drop a widget whose tool follows another tool call in the same turn: the
+render tool must be the only tool the model invokes. Its text result always
+contains an absolute `/study/:sessionId` link for hosts that drop the widget.
+
+Widget CSP travels in the resource's `_meta.ui.csp` (`resourceDomains` = the
+Worker origin). Hosts inject the resource HTML into their own sandboxed iframe
+and never apply the `content-security-policy` header that `/mcp-apps/*` returns.
+
 ## Tools
 
 The curated tool surface is defined in `packages/shared/src/api/mcp.ts` and

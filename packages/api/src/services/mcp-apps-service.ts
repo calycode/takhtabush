@@ -25,24 +25,43 @@ const STUDY_WIDGET_CSP = [
    'frame-ancestors *',
 ].join('; ');
 
-export function serveStudyWidget(): Response {
+/** Add the Worker origin so card media can load when the resource is opened directly. */
+function studyWidgetCsp(origin?: string): string {
+   if (!origin) return STUDY_WIDGET_CSP;
+   return STUDY_WIDGET_CSP.replace(
+      "img-src 'self' data:",
+      `img-src 'self' ${origin} data:`,
+   ).replace("media-src 'self'", `media-src 'self' ${origin}`);
+}
+
+export function serveStudyWidget(origin?: string): Response {
    return new Response(STUDY_WIDGET_HTML, {
       status: 200,
       headers: {
          'content-type': MCP_STUDY_WIDGET_MIME_TYPE,
-         'content-security-policy': STUDY_WIDGET_CSP,
+         'content-security-policy': studyWidgetCsp(origin),
          'cache-control': 'public, max-age=3600',
          'x-content-type-options': 'nosniff',
       },
    });
 }
 
-/** Read the study widget through the MCP `resources/read` contract. */
-export function readStudyWidgetResource(uri: string): McpUiResourceContent | null {
+/**
+ * Read the study widget through the MCP `resources/read` contract.
+ *
+ * The CSP travels in `_meta.ui.csp` because hosts inject this HTML into their
+ * own sandboxed iframe and never see the HTTP headers above.
+ */
+export function readStudyWidgetResource(uri: string, origin?: string): McpUiResourceContent | null {
    if (uri !== MCP_STUDY_WIDGET_RESOURCE_URI) return null;
    return {
       uri,
       mimeType: MCP_STUDY_WIDGET_MIME_TYPE,
       text: STUDY_WIDGET_HTML,
+      _meta: {
+         ui: {
+            csp: { resourceDomains: origin ? [origin] : [] },
+         },
+      },
    };
 }

@@ -97,18 +97,20 @@ app.all('/mcp', async (c) => {
       c.req.header('x-mcp-scopes') ?? null,
       granted ?? [...MCP_ALL_SCOPES],
    );
-   const services = buildMcpServices(c.env, user, c.get('requestId'));
+   const origin = new URL(c.req.url).origin;
+   const services = buildMcpServices(c.env, user, c.get('requestId'), origin);
    return handleMcpRequest(c.req.raw, {
       services,
       userId: user.id,
       scopes,
       requestId: c.get('requestId'),
+      baseUrl: origin,
    });
 });
 
 // 3. MCP Apps UI resource. Public (the widget is data-free until it calls a
 // tool through the host bridge) and served with the MCP Apps MIME type + CSP.
-app.get('/mcp-apps/study-session/v1.html', () => serveStudyWidget());
+app.get('/mcp-apps/study-session/v1.html', (c) => serveStudyWidget(new URL(c.req.url).origin));
 
 // 4. Authenticated R2 read proxy for media.
 app.get('/media/:id', async (c) => {
@@ -160,8 +162,15 @@ const mcpOAuthHandler = {
          request.headers.get('cf-ray') ??
          request.headers.get('x-request-id') ??
          crypto.randomUUID();
-      const services = buildMcpServices(env, mapUserRow(userRow), requestId);
-      return handleMcpRequest(request, { services, userId, scopes, requestId });
+      const origin = new URL(request.url).origin;
+      const services = buildMcpServices(env, mapUserRow(userRow), requestId, origin);
+      return handleMcpRequest(request, {
+         services,
+         userId,
+         scopes,
+         requestId,
+         baseUrl: origin,
+      });
    },
 };
 

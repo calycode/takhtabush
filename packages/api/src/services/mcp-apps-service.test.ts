@@ -12,4 +12,13 @@ describe('MCP Apps study widget resource', () => {
    it('returns null for an unknown resource URI', () => {
       expect(readStudyWidgetResource('ui://takhtabush/missing.html')).toBeNull();
    });
+
+   it('declares the Worker origin so host-applied CSP allows card media', () => {
+      const content = readStudyWidgetResource(
+         MCP_STUDY_WIDGET_RESOURCE_URI,
+         'https://takhtabush.example.com',
+      );
+      expect(content?._meta?.ui?.csp?.resourceDomains).toEqual(['https://takhtabush.example.com']);
+      expect(content?._meta?.ui?.csp?.connectDomains).toBeUndefined();
+   });
 });

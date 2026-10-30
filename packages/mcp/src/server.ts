@@ -3,6 +3,7 @@ import {
    mcpToolNameSchema,
    type McpServices,
    type McpScope,
+   type StudySessionSnapshot,
 } from '@caly/shared';
 import { McpError, McpToolError, missingScope } from './errors';
 import { callTool, listTools, toolResultMeta } from './tools';
@@ -14,6 +15,8 @@ export type McpContext = {
    userId: string;
    scopes: McpScope[];
    requestId: string | null;
+   /** Canonical origin used to make fallback links absolute; defaults to the request URL. */
+   baseUrl?: string;
 };
 
 type JsonRpcId = string | number | null;
@@ -29,6 +32,28 @@ function result(id: JsonRpcId, value: unknown) {
 
 function error(id: JsonRpcId, code: number, message: string) {
    return { jsonrpc: '2.0', id: id ?? null, error: { code, message } };
+}
+
+/**
+ * Model-visible text for a tool result. The render tool gets a compact summary
+ * plus an absolute link so the user can still study when a host drops the
+ * widget (SPEC §9.8 failure table); other tools keep their JSON payload.
+ */
+function toolText(name: string, output: unknown, baseUrl: string): string {
+   if (name === 'render_study_session' && output && typeof output === 'object') {
+      const snapshot = output as StudySessionSnapshot;
+      if (
+         typeof snapshot.sessionId === 'string' &&
+         typeof snapshot.fallbackStudyPath === 'string'
+      ) {
+         const link = `${baseUrl.replace(/\/$/, '')}${snapshot.fallbackStudyPath}`;
+         return [
+            `Study session ready for ${snapshot.deckTitle}: ${snapshot.reviewed}/${snapshot.total} reviewed, status ${snapshot.status}.`,
+            `If the study widget does not render, open the session here: ${link}`,
+         ].join('\n');
+      }
+   }
+   return JSON.stringify(output);
 }
 
 async function dispatch(message: JsonRpcMessage, ctx: McpContext) {
@@ -69,7 +94,7 @@ async function dispatch(message: JsonRpcMessage, ctx: McpContext) {
             const output = await callTool(name, params.arguments ?? {}, ctx);
             const meta = toolResultMeta(name);
             return result(id, {
-               content: [{ type: 'text', text: JSON.stringify(output) }],
+               content: [{ type: 'text', text: toolText(name, output, ctx.baseUrl ?? '') }],
                structuredContent: output,
                isError: false,
                // MCP Apps UI linkage for render tools (SPEC §9.8).
@@ -108,9 +133,13 @@ export async function handleMcpRequest(request: Request, ctx: McpContext): Promi
    }
 
    const messages = (Array.isArray(body) ? body : [body]) as JsonRpcMessage[];
+   const context: McpContext = {
+      ...ctx,
+      baseUrl: ctx.baseUrl ?? new URL(request.url).origin,
+   };
    const responses: unknown[] = [];
    for (const message of messages) {
-      const response = await dispatch(message, ctx);
+      const response = await dispatch(message, context);
       if (response) responses.push(response);
    }
 

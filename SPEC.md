@@ -1,6 +1,6 @@
 # Takhtabush — Unified Worker Specification
 
-**Revision:** 8 · **Date:** 2026-10-20 · **Status:** Phases 1–3 implemented; single tenancy + first-run setup; Phase 4 deferred; Phase 6 host validation pending
+**Revision:** 11 · **Date:** 2026-10-30 · **Status:** Phases 1–3 implemented; single tenancy + first-run setup; Phase 4 deferred; Phase 6 mobile host validation in progress
 **Deployment model:** Single Cloudflare Worker, single tenant by default
 **Stack:** Preact + Vite, shadcn/ui (Base UI), Tailwind CSS v4, Hono, Cloudflare D1, R2, Email Service, AI Gateway / Workers AI, MCP
 
@@ -437,10 +437,9 @@ Add an optional MCP Apps-compatible UI so an LLM chat can request and conduct a 
 
 ```text
 User: “Start a 10-minute review session from my Spanish A1 deck.”
-  → LLM calls start_study_session
-  → API creates session, selects cards, returns structuredContent
-  → LLM calls render_study_session({ sessionId })
-  → MCP returns UI resource + session snapshot
+  → LLM calls render_study_session({ deckId, minutes }) as the turn's only tool
+  → API creates the session, selects cards, returns structuredContent + UI metadata
+  → MCP returns the UI resource and the session snapshot
   → User studies and grades cards in the embedded widget
   → Widget calls record_review through the MCP Apps bridge
   → Server appends immutable review events and returns updated state
@@ -453,7 +452,9 @@ Use separate data and render tools:
 - `start_study_session` — creates the session, applies Clef/scheduler rules, and returns `structuredContent`; it does not declare a UI resource.
 - `get_study_session` — returns the current authoritative session snapshot; no UI.
 - `record_review` — appends an immutable review event; no UI.
-- `render_study_session` — accepts `sessionId`, verifies ownership, and returns the MCP Apps UI resource plus a compact session snapshot. This is the only tool that declares UI metadata.
+- `render_study_session` — accepts `sessionId` to resume, or `deckId` (plus `mode`, `goal`, `minutes`) to start and render in the same call, verifies ownership, and returns the MCP Apps UI resource plus a compact session snapshot. This is the only tool that declares UI metadata.
+
+`render_study_session` must remain usable as the **only** tool call in an assistant turn: mobile ChatGPT clients drop a widget whose tool follows another tool call, so the render tool creates the session itself instead of relying on a preceding `start_study_session`. Its result text always carries the deck title, progress, and an absolute `/study/:sessionId` link, because a host that drops the widget still shows that text.
 
 Every MCP workflow must remain fully usable without the UI.
 
@@ -845,3 +846,4 @@ Multi-tenant organizations and billing; realtime collaborative editing; public m
 - **Revision 8 (2026-10-20)** � single tenancy (owner, `ALLOWED_EMAILS`, `OWNER_EMAIL`, one-owner index); first-run setup/recovery through `SETUP_TOKEN`, `/auth/status`, and `/auth/setup`; the production `wrangler.jsonc`, the Appflare repository-install path, the catalog manifest draft, and `pnpm build` / `pnpm deploy`.
 - **Revision 9 (2026-10-21)** — OAuth 2.1 for ChatGPT: `/mcp` is protected by `@cloudflare/workers-oauth-provider` with CIMD/DCR, PKCE, token/refresh handling, and RFC 9728/8414 discovery; API keys and sessions bypass the provider. `/mcp/oauth` is a path-descendant alias, `/oauth/authorize` reuses the magic-link session, and `OAUTH_KV` stores grants.
 - **Revision 10 (2026-10-21)** — open-source packaging: the project is published as **Takhtabush** under the MIT license. The unsandboxed `code` tool and `codemode:execute` scope were removed; MCP `tools/list` and the study widget resource are now scope-gated; the study-widget resource URI moved to `ui://takhtabush/study-session/v1.html`.
+- **Revision 11 (2026-10-30)** — mobile chat hosts: `render_study_session` now starts or resumes a session in the same call (`deckId` | `sessionId`) so the UI-linked tool is the only tool in a turn, which is the pattern ChatGPT mobile clients require. Its result text carries an absolute `/study/:sessionId` fallback link. The widget negotiates the MCP Apps protocol version (`2026-01-26`) instead of the core MCP version, declares `_meta.ui.csp` on the resource because hosts never see HTTP headers, and receives absolute media URLs.

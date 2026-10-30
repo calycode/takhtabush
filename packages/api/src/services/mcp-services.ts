@@ -42,7 +42,15 @@ function summaryFromRow(row: Row): McpCardSummary {
  * Bind the domain services to a single authenticated user and expose them to
  * the MCP package. MCP never touches D1/R2 directly (SPEC §2.3, D10).
  */
-export function buildMcpServices(env: AppEnv, user: User, _requestId: string | null): McpServices {
+export function buildMcpServices(
+   env: AppEnv,
+   user: User,
+   _requestId: string | null,
+   origin?: string,
+): McpServices {
+   // Absolute media/fallback URLs: the widget runs in a sandboxed iframe on the
+   // host's origin, so relative paths would resolve against the wrong host.
+   const base = (origin ?? env.APP_URL ?? '').replace(/\/$/, '');
    return {
       async listDecks(input) {
          const { items, nextCursor } = await listDecksForUser(env, user.id, {
@@ -179,8 +187,8 @@ export function buildMcpServices(env: AppEnv, user: User, _requestId: string | n
                   clozeText: card.clozeText,
                   choices: card.choices,
                   correctChoice: card.correctChoice,
-                  imageUrl: card.imageMediaId ? `/media/${card.imageMediaId}` : null,
-                  audioUrl: card.audioMediaId ? `/media/${card.audioMediaId}` : null,
+                  imageUrl: card.imageMediaId ? `${base}/media/${card.imageMediaId}` : null,
+                  audioUrl: card.audioMediaId ? `${base}/media/${card.audioMediaId}` : null,
                });
             }
             return {
@@ -201,7 +209,7 @@ export function buildMcpServices(env: AppEnv, user: User, _requestId: string | n
       },
 
       async readUiResource(uri) {
-         return readStudyWidgetResource(uri);
+         return readStudyWidgetResource(uri, base || undefined);
       },
 
       recordAudit: (event) => insertAuditEvent(env, event),

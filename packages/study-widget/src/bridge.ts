@@ -6,6 +6,8 @@
  * to `tools/call`, and the server stays authoritative.
  */
 
+import { MCP_APPS_PROTOCOL_VERSION } from '@caly/shared';
+
 type Pending = { resolve: (value: unknown) => void; reject: (error: Error) => void };
 
 type IncomingMessage = {
@@ -18,6 +20,11 @@ type IncomingMessage = {
 
 const INITIALIZE_TIMEOUT_MS = 5000;
 
+/** JSON-RPC ids may be strings or numbers; hosts are free to echo either. */
+function requestKey(id: number | string): string {
+   return String(id);
+}
+
 export type WidgetBridge = {
    /** True when running inside a host iframe rather than standalone. */
    isHosted: boolean;
@@ -29,7 +36,7 @@ export type WidgetBridge = {
 export function createBridge(): WidgetBridge {
    const isHosted = window.parent !== window;
    const host = isHosted ? window.parent : window;
-   const pending = new Map<number, Pending>();
+   const pending = new Map<string, Pending>();
    const listeners = new Set<(payload: IncomingMessage['params']) => void>();
    let seq = 0;
    let initializeStarted = false;
@@ -59,15 +66,22 @@ export function createBridge(): WidgetBridge {
       if (initializeStarted || !isHosted) return;
       initializeStarted = true;
       const id = ++seq;
-      pending.set(id, { resolve: finishInitialize, reject: finishInitialize });
+      const key = requestKey(id);
+      pending.set(key, {
+         resolve: finishInitialize,
+         // A host that rejects the handshake stays uninitialized instead of
+         // being told the app finished a protocol it never negotiated.
+         reject: () => {},
+      });
       post('ui/initialize', id, {
-         protocolVersion: '2025-06-18',
+         // The MCP Apps protocol version, not the core MCP version.
+         protocolVersion: MCP_APPS_PROTOCOL_VERSION,
          appInfo: { name: 'takhtabush-study-widget', version: '1' },
-         appCapabilities: {},
+         appCapabilities: { availableDisplayModes: ['inline'] },
       });
       setTimeout(() => {
-         if (pending.has(id)) {
-            pending.delete(id);
+         if (pending.has(key)) {
+            pending.delete(key);
             finishInitialize();
          }
       }, INITIALIZE_TIMEOUT_MS);
@@ -75,12 +89,13 @@ export function createBridge(): WidgetBridge {
 
    function callTool(name: string, args: unknown): Promise<unknown> {
       const id = ++seq;
+      const key = requestKey(id);
       return new Promise((resolve, reject) => {
-         pending.set(id, { resolve, reject });
+         pending.set(key, { resolve, reject });
          post('tools/call', id, { name, arguments: args });
          setTimeout(() => {
-            if (pending.has(id)) {
-               pending.delete(id);
+            if (pending.has(key)) {
+               pending.delete(key);
                reject(new Error('MCP tool call timed out'));
             }
          }, 15000);
@@ -92,12 +107,15 @@ export function createBridge(): WidgetBridge {
       const data = event.data as IncomingMessage | null;
       if (!data || typeof data !== 'object') return;
 
-      if (data.id !== undefined && typeof data.id === 'number' && pending.has(data.id)) {
-         const entry = pending.get(data.id) as Pending;
-         pending.delete(data.id);
-         if (data.error) entry.reject(new Error(data.error.message ?? 'rpc error'));
-         else entry.resolve(data.result);
-         return;
+      if (data.id !== undefined && data.id !== null) {
+         const key = requestKey(data.id);
+         if (pending.has(key)) {
+            const entry = pending.get(key) as Pending;
+            pending.delete(key);
+            if (data.error) entry.reject(new Error(data.error.message ?? 'rpc error'));
+            else entry.resolve(data.result);
+            return;
+         }
       }
 
       if (data.method === 'ui/notifications/tool-result') {
@@ -114,9 +132,10 @@ export function createBridge(): WidgetBridge {
       callTool,
       updateModelContext(text) {
          const id = ++seq;
-         pending.set(id, { resolve: () => {}, reject: () => {} });
+         const key = requestKey(id);
+         pending.set(key, { resolve: () => {}, reject: () => {} });
          post('ui/update-model-context', id, { content: [{ type: 'text', text }] });
-         setTimeout(() => pending.delete(id), 15000);
+         setTimeout(() => pending.delete(key), 15000);
       },
       onSnapshot(cb) {
          listeners.add(cb);

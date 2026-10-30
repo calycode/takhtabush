@@ -1,3 +1,4 @@
+import { MCP_APPS_PROTOCOL_VERSION } from '@caly/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createBridge } from './bridge';
 
@@ -59,9 +60,9 @@ describe('MCP Apps bridge', () => {
       expect(init).toBeDefined();
       expect(typeof init?.id).toBe('number');
       expect(init?.params).toMatchObject({
-         protocolVersion: '2025-06-18',
+         protocolVersion: MCP_APPS_PROTOCOL_VERSION,
          appInfo: { name: 'takhtabush-study-widget' },
-         appCapabilities: {},
+         appCapabilities: { availableDisplayModes: ['inline'] },
       });
       expect(messages.some((message) => message.method === 'ui/notifications/initialized')).toBe(
          false,
