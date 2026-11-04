@@ -55,6 +55,7 @@ const canonicalUrl = (entryPath: string) =>
       : entryPath.endsWith('/')
         ? `${SITE_URL}/docs/${entryPath}`
         : `${SITE_URL}/docs/${entryPath}.html`;
+const OG_IMAGE = `${SITE_URL}/assets/media/og-image.png`;
 
 function escapeHtml(value: string): string {
    return value
@@ -288,6 +289,7 @@ async function main(): Promise<void> {
          DESCRIPTION: description,
          CANONICAL: canonicalUrl(entry.path),
          MD_HREF: rawUrl(entry.path),
+         OG_IMAGE,
          CURRENT_PATH: entry.path,
          INDEX_URL: asset('assets/search-index.json'),
          SIDEBAR: renderSidebar(manifest, entry.path),
@@ -339,6 +341,7 @@ async function main(): Promise<void> {
          BASE,
          MANIFEST_VERSION: manifestVersion,
          CANONICAL: `${SITE_URL}/`,
+         OG_IMAGE,
          VERSION: pkg.version,
          GENERATED_AT: new Date(manifest.generatedAt).toISOString().slice(0, 10),
       }),
