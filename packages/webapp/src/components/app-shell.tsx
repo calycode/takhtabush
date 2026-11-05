@@ -7,16 +7,15 @@ export function AppShell({ children }: { children: ComponentChildren }) {
          <header className='sticky top-0 z-40 flex items-center justify-between gap-4 border-b bg-background/95 px-4 py-2 backdrop-blur'>
             <a
                href='/'
-               className='inline-flex items-center gap-2 font-heading font-medium'
+               className='inline-flex items-center'
             >
                <img
-                  src='/logo.png'
-                  alt=''
-                  width='28'
-                  height='28'
-                  className='rounded-[7px]'
+                  src='/logo-long.png'
+                  alt='Takhtabush'
+                  width='66'
+                  height='32'
+                  className='h-8 w-auto'
                />
-               Takhtabush
             </a>
             <AvatarMenu />
          </header>
