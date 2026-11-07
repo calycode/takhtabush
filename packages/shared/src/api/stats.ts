@@ -28,6 +28,8 @@ export const deckStatsSchema = z.object({
    accuracy: z.number().min(0).max(1).nullable(),
    streak: z.number().int().nonnegative(),
    dueForecast: z.array(dueForecastPointSchema),
+   /** Past review counts per day (sparse — days with no reviews are omitted). */
+   activity: z.array(dueForecastPointSchema),
    weakCards: z.array(weakCardSchema),
 });
 

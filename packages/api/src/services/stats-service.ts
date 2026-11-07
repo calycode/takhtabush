@@ -3,6 +3,7 @@ import { newId } from '@caly/worker-kit';
 import type { AppEnv } from '../env';
 import {
    getDueForecast,
+   getReviewActivity,
    getReviewAggregate,
    getWeakCards,
    listDueCardIds,
@@ -20,13 +21,14 @@ export async function computeDeckStats(
    const now = new Date();
    const nowIso = now.toISOString();
 
-   const [counts, aggregate, streak, forecast, weak, dueIds] = await Promise.all([
+   const [counts, aggregate, streak, forecast, weak, dueIds, activity] = await Promise.all([
       getDeckCounts(env, userId, deckId),
       getReviewAggregate(env, userId, deckId),
       getCachedReviewStreak(env, userId),
       getDueForecast(env, userId, deckId, nowIso, 14),
       getWeakCards(env, userId, deckId, 10),
       listDueCardIds(env, userId, deckId, nowIso, 500),
+      getReviewActivity(env, userId, deckId, 112),
    ]);
 
    return {
@@ -40,6 +42,7 @@ export async function computeDeckStats(
       accuracy: aggregate.total > 0 ? aggregate.correct / aggregate.total : null,
       streak,
       dueForecast: forecast,
+      activity,
       weakCards: weak,
    };
 }

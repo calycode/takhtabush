@@ -467,6 +467,32 @@ export async function getDueForecast(
    return (result.results ?? []).map((row) => ({ date: row.date, count: Number(row.count) }));
 }
 
+/**
+ * Review counts per day (UTC) for a deck over the trailing `days` days.
+ * Sparse: days with no reviews are omitted; the client fills the gaps.
+ */
+export async function getReviewActivity(
+   env: AppEnv,
+   userId: string,
+   deckId: string,
+   days: number,
+): Promise<Array<{ date: string; count: number }>> {
+   const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
+   const result = await env.DB.prepare(
+      `SELECT substr(r.reviewed_at, 1, 10) AS date, COUNT(*) AS count
+         FROM cards c
+        CROSS JOIN review_events r
+        WHERE c.deck_id = ? AND c.deleted_at IS NULL
+          AND r.user_id = ? AND r.card_id = c.id
+          AND r.reviewed_at >= ?
+        GROUP BY date
+        ORDER BY date ASC`,
+   )
+      .bind(deckId, userId, cutoff)
+      .all<{ date: string; count: number }>();
+   return (result.results ?? []).map((row) => ({ date: row.date, count: Number(row.count) }));
+}
+
 export async function getWeakCards(
    env: AppEnv,
    userId: string,

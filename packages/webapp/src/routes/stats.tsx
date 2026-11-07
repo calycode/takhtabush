@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import type { DeckStats } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
 import { getDeckStats } from '../lib/api/stats';
+import { ReviewHeatmap } from '../components/review-heatmap';
 import { StreakFlame } from '../components/streak-flame';
 
 export function StatsView({ deckId }: { deckId?: string }) {
@@ -86,6 +87,16 @@ export function StatsView({ deckId }: { deckId?: string }) {
                value={stats.totalReviews}
             />
          </div>
+
+         <Card>
+            <CardHeader>
+               <CardTitle>Review activity</CardTitle>
+               <CardDescription>Reviews per day over the last 16 weeks.</CardDescription>
+            </CardHeader>
+            <CardContent>
+               <ReviewHeatmap points={stats.activity} />
+            </CardContent>
+         </Card>
 
          <Card>
             <CardHeader>
