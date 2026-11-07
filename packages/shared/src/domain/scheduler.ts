@@ -69,8 +69,9 @@ export function scheduleReview(
    const lapses = state.lapses;
 
    let nextEase = ease;
-   let nextInterval = interval;
-   let nextRepetitions = repetitions;
+   // Every switch branch assigns these; only `good` leaves the others alone.
+   let nextInterval: number;
+   let nextRepetitions: number;
    let nextLapses = lapses;
    let phase: string;
 
