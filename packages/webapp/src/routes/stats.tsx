@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import type { DeckStats } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
 import { getDeckStats } from '../lib/api/stats';
+import { StreakFlame } from '../components/streak-flame';
 
 export function StatsView({ deckId }: { deckId?: string }) {
    const id = deckId ?? '';
@@ -66,10 +67,12 @@ export function StatsView({ deckId }: { deckId?: string }) {
                label='Due now'
                value={stats.dueCards}
             />
-            <Metric
-               label='Streak'
-               value={`${stats.streak}d`}
-            />
+            <Card size='sm'>
+               <CardHeader>
+                  <CardDescription>Streak</CardDescription>
+                  <StreakFlame days={stats.streak} />
+               </CardHeader>
+            </Card>
             <Metric
                label='New'
                value={stats.newCards}
