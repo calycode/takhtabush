@@ -36,6 +36,6 @@
    },
    "devDependencies": {
       "preact": "^11.2.0",
-      "typescript": "^6.0.3"
+      "typescript": "^7.0.2"
    }
 }
