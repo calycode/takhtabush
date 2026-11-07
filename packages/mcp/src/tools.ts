@@ -21,7 +21,6 @@ import {
    type StudySessionSnapshot,
 } from '@caly/shared';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { McpError, McpToolError, missingScope } from './errors';
 
 export type ToolContext = {
@@ -75,9 +74,9 @@ export function listTools(scopes: McpScope[]) {
    return MCP_TOOL_DEFINITIONS.filter((tool) => scopes.includes(tool.scope)).map((tool) => ({
       name: tool.name,
       description: tool.description,
-      inputSchema: zodToJsonSchema(tool.inputSchema, {
-         target: 'jsonSchema7',
-         $refStrategy: 'none',
+      inputSchema: z.toJSONSchema(tool.inputSchema, {
+         target: 'draft-7',
+         io: 'input',
       }),
       // MCP Apps: only render tools declare a UI resource (SPEC §9.8).
       ...(tool.meta ? { _meta: tool.meta } : {}),

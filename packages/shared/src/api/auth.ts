@@ -11,7 +11,7 @@ export const safeNextPathSchema = z
    );
 
 export const requestMagicLinkInputSchema = z.object({
-   email: z.string().email().max(320),
+   email: z.email().max(320),
    /** Required only when the deployment sets `OWNER_INVITE_TOKEN` (SPEC A3.2). */
    invite: z.string().max(200).optional(),
    /** Where to return after sign-in, e.g. an OAuth authorization request. */
@@ -28,7 +28,7 @@ export type VerifyMagicLinkInput = z.infer<typeof verifyMagicLinkInputSchema>;
 
 /** First-run setup creates the owner account without email delivery. */
 export const setupOwnerInputSchema = z.object({
-   email: z.string().email().max(320),
+   email: z.email().max(320),
    token: z.string().min(1).max(500),
 });
 
@@ -44,7 +44,7 @@ export type AuthStatus = z.infer<typeof authStatusSchema>;
 
 export const userSchema = z.object({
    id: z.string(),
-   email: z.string().email(),
+   email: z.email(),
    displayName: z.string(),
    isOwner: z.boolean(),
    createdAt: isoDateSchema,
