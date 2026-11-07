@@ -17,6 +17,7 @@ import { listDecks } from '../lib/api/decks';
 import { getDeckStats } from '../lib/api/stats';
 import { listSessions } from '../lib/api/study';
 import { DeckLibrary } from '../components/deck-library';
+import { StreakFlame } from '../components/streak-flame';
 
 export function Home() {
    const [decks, setDecks] = useState<Deck[]>([]);
@@ -56,11 +57,14 @@ export function Home() {
 
    return (
       <section className='flex flex-col gap-6'>
-         <div className='flex flex-col gap-2'>
-            <h1 className='font-heading text-2xl font-medium'>Dashboard</h1>
-            <p className='text-sm text-muted-foreground'>
-               Your decks, cards, and study sessions on one Worker.
-            </p>
+         <div className='flex flex-wrap items-end justify-between gap-2'>
+            <div className='flex flex-col gap-2'>
+               <h1 className='font-heading text-2xl font-medium'>Dashboard</h1>
+               <p className='text-sm text-muted-foreground'>
+                  Your decks, cards, and study sessions on one Worker.
+               </p>
+            </div>
+            {topStats && <StreakFlame days={topStats.streak} />}
          </div>
 
          {status === 'auth' && (
