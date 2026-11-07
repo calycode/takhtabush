@@ -194,9 +194,11 @@ reference pages are generated from the code.
    - [Scheduler](./docs/developer/scheduler.md)
    - [HTTP API reference](./docs/developer/reference/api.md)
 
-The GitHub Pages workflow builds and deploys `docs-site/` on changes to `docs/`
-or the docs scripts. For a custom domain, set `DOCS_BASE` (empty for root) and
-`DOCS_SITE_URL` in the workflow.
+The docs workflow builds `packages/docs/dist/` and deploys it to the
+`takhtabush-docs` Cloudflare Worker at <https://takhtabush.calycode.com> on
+changes to `docs/` or the docs scripts. Run `pnpm docs:deploy` to publish
+manually. The Worker has no `workers.dev` hostname; only the custom domain is
+public.
 
 ## Contributing
 

@@ -1,0 +1,12 @@
+{
+   "name": "@caly/docs",
+   "version": "0.1.0",
+   "private": true,
+   "license": "MIT",
+   "type": "module",
+   "scripts": {
+      "build:site": "pnpm -w docs:build",
+      "deploy": "wrangler deploy",
+      "dev": "wrangler dev"
+   }
+}

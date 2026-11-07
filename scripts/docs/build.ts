@@ -5,11 +5,11 @@ import { marked } from 'marked';
 
 const ROOT = process.cwd();
 const DOCS = path.join(ROOT, 'docs');
-const OUT = path.join(ROOT, 'docs-site');
+const OUT = path.join(ROOT, 'packages', 'docs', 'dist');
 const TEMPLATE = path.join(ROOT, 'util-resources', 'docs-template');
 
 const BASE = (process.env.DOCS_BASE ?? '').replace(/\/$/, '');
-const SITE_URL = (process.env.DOCS_SITE_URL ?? 'https://calycode.github.io/takhtabush').replace(
+const SITE_URL = (process.env.DOCS_SITE_URL ?? 'https://takhtabush.calycode.com').replace(
    /\/$/,
    '',
 );
@@ -359,7 +359,19 @@ async function main(): Promise<void> {
             .join('\n') +
          `\n</urlset>\n`,
    );
-   write('.nojekyll', '');
+   write(
+      '404.html',
+      `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">` +
+         `<meta name="viewport" content="width=device-width, initial-scale=1">` +
+         `<meta name="color-scheme" content="light dark">` +
+         `<title>Page not found — Takhtabush docs</title>` +
+         `<link rel="stylesheet" href="${BASE}/assets/docs.css"></head>` +
+         `<body><main style="max-width:40rem;margin:12vh auto;padding:0 1.5rem;font-family:system-ui,sans-serif">` +
+         `<h1>Page not found</h1><p>That page does not exist in the Takhtabush docs.</p>` +
+         `<p><a href="${BASE}/docs/">Browse the documentation</a> or ` +
+         `<a href="${BASE}/">go to the landing page</a>.</p>` +
+         `</main></body></html>`,
+   );
 
    console.log(
       `Rendered ${manifest.entries.length} pages, ${searchRecords.length} search records.`,

@@ -48,9 +48,11 @@ pnpm docs:build
 - Pages live in `docs/` as Markdown.
 - `pnpm docs:generate` writes `docs/manifest.json`, `docs/_sidebar.md`, and the
   generated reference pages.
-- `pnpm docs:build` renders the static site into `docs-site/`.
+- `pnpm docs:build` renders the static site into `packages/docs/dist/`.
 - `pnpm docs:dev` builds the static site and serves it on `:3030`.
-- `pnpm docs:preview` serves the built static site from `docs-site/`.
+- `pnpm docs:preview` serves the built static site from `packages/docs/dist/`.
+- `pnpm docs:deploy` builds the site and deploys it to the `takhtabush-docs`
+  Cloudflare Worker.
 
 When you add a page, add it to the entry list in `scripts/docs/manifest.ts` so
 it appears in the sidebar, search, and pager. Generated pages should not be
