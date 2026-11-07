@@ -21,7 +21,7 @@ export const studyPlanSchema = z.object({
    strategy: journeyStrategySchema,
    estimatedMinutes: z.number().int().nonnegative(),
    cardIds: z.array(idSchema),
-   reasons: z.record(z.number()),
+   reasons: z.record(z.string(), z.number()),
    fallbackUsed: z.boolean(),
 });
 

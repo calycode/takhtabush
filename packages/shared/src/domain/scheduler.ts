@@ -20,7 +20,7 @@ export const learningStateSchema = z.object({
    userId: idSchema,
    cardId: idSchema,
    schedulerVersion: z.number().int().positive(),
-   state: z.record(z.unknown()),
+   state: z.record(z.string(), z.unknown()),
    dueAt: isoDateSchema.nullable(),
    intervalDays: z.number().nonnegative().nullable(),
    ease: z.number().nullable(),

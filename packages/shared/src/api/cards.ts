@@ -119,7 +119,7 @@ export const cardRevisionSchema = z.object({
    id: idSchema,
    cardId: idSchema,
    authorId: idSchema,
-   snapshot: z.record(z.unknown()),
+   snapshot: z.record(z.string(), z.unknown()),
    createdAt: isoDateSchema,
 });
 

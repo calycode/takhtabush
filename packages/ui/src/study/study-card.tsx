@@ -39,7 +39,7 @@ export function StudyCard({ card, mode, pool, busy, onAnswered }: StudyCardProps
    const [text, setText] = useState('');
    const [result, setResult] = useState<'correct' | 'incorrect' | null>(null);
    const [grade, setGrade] = useState<ReviewResponse | null>(null);
-   const timer = useRef<number>();
+   const timer = useRef<number | undefined>(undefined);
    const startedAt = useRef(Date.now());
    const inputRef = useRef<HTMLInputElement>(null);
 

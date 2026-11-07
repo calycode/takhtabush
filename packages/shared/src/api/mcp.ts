@@ -157,7 +157,7 @@ export const mcpAuditEventSchema = z.object({
    userId: idSchema,
    toolName: mcpToolNameSchema,
    action: z.string(),
-   inputSummary: z.record(z.unknown()),
+   inputSummary: z.record(z.string(), z.unknown()),
    affectedIds: z.array(idSchema),
    requestId: z.string().nullable(),
    createdAt: isoDateSchema,

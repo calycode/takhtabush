@@ -47,7 +47,7 @@ export const studyPreviewSchema = z.object({
    cardCount: z.number().int().nonnegative(),
    estimatedMinutes: z.number().int().nonnegative(),
    strategy: journeyStrategySchema,
-   reasons: z.record(z.number()),
+   reasons: z.record(z.string(), z.number()),
 });
 
 export type StudyPreview = z.infer<typeof studyPreviewSchema>;
@@ -96,7 +96,7 @@ export const reviewEventSchema = z.object({
    response: reviewResponseSchema,
    isCorrect: z.boolean(),
    durationMs: z.number().int().nonnegative().nullable(),
-   schedulerState: z.record(z.unknown()),
+   schedulerState: z.record(z.string(), z.unknown()),
    reviewedAt: isoDateSchema,
 });
 

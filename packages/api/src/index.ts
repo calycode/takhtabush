@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { logger } from 'hono/logger';
 import {
    OAuthProvider,
@@ -41,8 +42,11 @@ function isMcpDevNoAuth(env: AppEnv): boolean {
 export const app = new Hono<AppBindings>();
 
 app.use('*', logger());
-app.use('*', requestContext());
-app.use('/api/v1/*', corsMiddleware);
+// The worker-kit helpers are binding-agnostic, so their path generic is wider
+// than the app's. Hono 4.13 types the match result on the request, so narrow
+// them at the mount point.
+app.use('*', requestContext() as unknown as MiddlewareHandler<AppBindings, '*'>);
+app.use('/api/v1/*', corsMiddleware as unknown as MiddlewareHandler<AppBindings, '/api/v1/*'>);
 app.use('*', sessionMiddleware);
 
 registerRoutes(app);
