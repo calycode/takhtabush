@@ -1,0 +1,15 @@
+{
+   // Static-assets-only Worker. There is no `main` entrypoint: every request is
+   // served from the built docs site, so this stays on the free Workers plan.
+   "$schema": "../../node_modules/wrangler/config-schema.json",
+   "name": "takhtabush-docs",
+   "compatibility_date": "2026-07-29",
+   // No workers.dev hostname: the docs are only reachable on the custom domain.
+   "workers_dev": false,
+   "routes": [{ "pattern": "takhtabush.calycode.com", "custom_domain": true }],
+   "assets": {
+      "directory": "./dist",
+      "html_handling": "auto-trailing-slash",
+      "not_found_handling": "404-page",
+   },
+}

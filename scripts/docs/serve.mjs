@@ -2,7 +2,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import path from 'node:path';
 
-const root = path.resolve(process.argv[2] ?? 'docs-site');
+const root = path.resolve(process.argv[2] ?? 'packages/docs/dist');
 const port = Number(process.env.PORT ?? process.argv[3] ?? 3031);
 const base = (process.env.DOCS_BASE ?? '').replace(/\/$/, '');
 

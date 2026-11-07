@@ -90,6 +90,8 @@ importers:
             specifier: ^5.0.1
             version: 5.0.4(@types/node@22.20.5)(vite@7.3.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15)(yaml@2.9.1))
 
+   packages/docs: {}
+
    packages/mcp:
       dependencies:
          '@caly/shared':
