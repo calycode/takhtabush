@@ -247,8 +247,8 @@ importers:
    packages/worker-kit:
       dependencies:
          hono:
-            specifier: ^4.6.0
-            version: 4.12.32
+            specifier: ^4.13.16
+            version: 4.13.17
       devDependencies:
          '@cloudflare/workers-types':
             specifier: ^5.20261027.1
@@ -3487,13 +3487,6 @@ packages:
             integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==,
          }
       hasBin: true
-
-   hono@4.12.32:
-      resolution:
-         {
-            integrity: sha512-XcuyW9qE2kJn07PkecMOBd5Vq/hMy7mmGw+idz1yblbg9N17ijJODrvPkn7/dwL3Kulj8LcRJ69DLOWf91dRUg==,
-         }
-      engines: { node: '>=16.9.0' }
 
    hono@4.13.17:
       resolution:
@@ -7095,8 +7088,6 @@ snapshots:
          hookified: 1.15.1
 
    he@1.2.0: {}
-
-   hono@4.12.32: {}
 
    hono@4.13.17: {}
 
