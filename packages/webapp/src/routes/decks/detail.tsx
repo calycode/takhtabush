@@ -39,7 +39,13 @@ import {
 } from '@caly/ui/components/table';
 import { Skeleton } from '@caly/ui/components/skeleton';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
-import { markdownToText, MAX_CARDS_PER_DECK, type Card as CardType, type Deck } from '@caly/shared';
+import {
+   markdownToText,
+   MAX_CARDS_PER_DECK,
+   type Card as CardType,
+   type Deck,
+   type DeckStats,
+} from '@caly/shared';
 import { Markdown } from '@caly/ui/markdown';
 import { ApiError } from '../../lib/api/client';
 import {
@@ -52,8 +58,10 @@ import {
    resumeCard,
    suspendCard,
 } from '../../lib/api/decks';
+import { getDeckStats } from '../../lib/api/stats';
 import { startSession } from '../../lib/api/study';
 import { CardForm, type CardDraft } from '../../components/card-form';
+import { DeckStatsOverview } from '../../components/deck-stats-overview';
 import { StudyLauncher, type StudyConfig } from '../../components/study-launcher';
 
 function answerPreview(card: CardType): string {
@@ -73,6 +81,8 @@ export function DeckDetail({ id }: { id?: string }) {
    const { route } = useLocation();
    const deckId = id ?? '';
    const [deck, setDeck] = useState<Deck | null>(null);
+   const [stats, setStats] = useState<DeckStats | null>(null);
+   const [statsUnavailable, setStatsUnavailable] = useState(false);
    const [cards, setCards] = useState<CardType[]>([]);
    const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
    const [error, setError] = useState<string | null>(null);
@@ -101,9 +111,20 @@ export function DeckDetail({ id }: { id?: string }) {
       }
    }, [deckId]);
 
+   /** Overview numbers are additive: the deck stays usable if they fail to load. */
+   const refreshStats = useCallback(() => {
+      getDeckStats(deckId)
+         .then((result) => {
+            setStats(result.data);
+            setStatsUnavailable(false);
+         })
+         .catch(() => setStatsUnavailable(true));
+   }, [deckId]);
+
    useEffect(() => {
       void refresh();
-   }, [refresh]);
+      refreshStats();
+   }, [refresh, refreshStats]);
 
    async function loadMoreCards() {
       setLoadingMoreCards(true);
@@ -126,6 +147,7 @@ export function DeckDetail({ id }: { id?: string }) {
             current ? { ...current, cardCount: current.cardCount + 1 } : current,
          );
          setAddOpen(false);
+         refreshStats();
       } catch (cause) {
          setError(cause instanceof ApiError ? cause.message : 'Failed to add card');
       } finally {
@@ -141,6 +163,7 @@ export function DeckDetail({ id }: { id?: string }) {
       );
       setConfirmDelete(false);
       setDeleted(true);
+      refreshStats();
    }
 
    async function undoDelete() {
@@ -153,6 +176,7 @@ export function DeckDetail({ id }: { id?: string }) {
          );
       }
       setDeleted(false);
+      refreshStats();
    }
 
    async function togglePause(card: CardType) {
@@ -160,6 +184,7 @@ export function DeckDetail({ id }: { id?: string }) {
          card.status === 'suspended' ? await resumeCard(card.id) : await suspendCard(card.id);
       setCards((current) => current.map((item) => (item.id === card.id ? result.data : item)));
       setSelectedCard((current) => (current?.id === card.id ? result.data : current));
+      refreshStats();
    }
 
    async function handleStart(config: StudyConfig) {
@@ -277,7 +302,7 @@ export function DeckDetail({ id }: { id?: string }) {
                         Edit deck
                      </DropdownMenuItem>
                      <DropdownMenuItem onSelect={() => route(`/stats/${deck.id}`)}>
-                        Statistics
+                        Card statistics
                      </DropdownMenuItem>
                      <DropdownMenuItem onSelect={() => route(`/decks/${deck.id}/import`)}>
                         Import cards
@@ -313,6 +338,21 @@ export function DeckDetail({ id }: { id?: string }) {
                   the deck into another collection to add more.
                </AlertDescription>
             </Alert>
+         )}
+
+         {!isEmpty && !statsUnavailable && (
+            <div className='flex flex-col gap-3'>
+               <div className='flex flex-wrap items-center justify-between gap-2'>
+                  <h2 className='font-heading text-lg font-medium'>Overview</h2>
+                  <a
+                     href={`/stats/${deck.id}`}
+                     className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                  >
+                     Card statistics
+                  </a>
+               </div>
+               <DeckStatsOverview stats={stats} />
+            </div>
          )}
 
          {isEmpty ? (

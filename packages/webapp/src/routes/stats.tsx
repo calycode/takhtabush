@@ -21,8 +21,8 @@ import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import type { DeckStats } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
 import { getDeckStats } from '../lib/api/stats';
+import { DeckStatsOverview } from '../components/deck-stats-overview';
 import { ReviewHeatmap } from '../components/review-heatmap';
-import { StreakFlame } from '../components/streak-flame';
 
 export function StatsView({ deckId }: { deckId?: string }) {
    const id = deckId ?? '';
@@ -59,34 +59,7 @@ export function StatsView({ deckId }: { deckId?: string }) {
             </a>
          </div>
 
-         <div className='grid gap-4 sm:grid-cols-3'>
-            <Metric
-               label='Accuracy'
-               value={stats.accuracy === null ? '—' : `${Math.round(stats.accuracy * 100)}%`}
-            />
-            <Metric
-               label='Due now'
-               value={stats.dueCards}
-            />
-            <Card size='sm'>
-               <CardHeader>
-                  <CardDescription>Streak</CardDescription>
-                  <StreakFlame days={stats.streak} />
-               </CardHeader>
-            </Card>
-            <Metric
-               label='New'
-               value={stats.newCards}
-            />
-            <Metric
-               label='Learning'
-               value={stats.learningCards}
-            />
-            <Metric
-               label='Reviews'
-               value={stats.totalReviews}
-            />
-         </div>
+         <DeckStatsOverview stats={stats} />
 
          <Card>
             <CardHeader>
@@ -160,16 +133,5 @@ export function StatsView({ deckId }: { deckId?: string }) {
             </CardContent>
          </Card>
       </section>
-   );
-}
-
-function Metric({ label, value }: { label: string; value: string | number }) {
-   return (
-      <Card size='sm'>
-         <CardHeader>
-            <CardDescription>{label}</CardDescription>
-            <CardTitle className='text-lg'>{value}</CardTitle>
-         </CardHeader>
-      </Card>
    );
 }
