@@ -77,6 +77,8 @@ function Chips<T extends string>({
             <button
                key={option.value}
                type='button'
+               data-slot='chip'
+               data-selected={value === option.value ? 'true' : 'false'}
                disabled={option.disabled}
                title={option.hint}
                onClick={() => onChange(option.value)}
@@ -111,6 +113,8 @@ function Section({
    return (
       <li className='flex gap-3'>
          <span
+            data-slot='step'
+            data-done={done ? 'true' : 'false'}
             className={cn(
                'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-all duration-200',
                done
@@ -122,7 +126,12 @@ function Section({
          </span>
          <div className='flex flex-1 flex-col gap-2'>
             <div className='flex flex-col'>
-               <span className='text-sm font-medium'>{title}</span>
+               <span
+                  data-slot='section-title'
+                  className='text-sm font-medium'
+               >
+                  {title}
+               </span>
                <span className='text-xs text-muted-foreground'>{hint}</span>
             </div>
             {children}
@@ -262,7 +271,10 @@ export function StudyLauncher({
                      }))}
                   />
                   {mode === 'matching' && (
-                     <div className='mt-1 flex flex-col gap-2 rounded-lg border bg-muted/30 p-3'>
+                     <div
+                        data-slot='panel'
+                        className='mt-1 flex flex-col gap-2 rounded-lg border bg-muted/30 p-3'
+                     >
                         <span className='text-xs font-medium'>
                            Matching style
                            <span className='text-muted-foreground'> · choose one</span>

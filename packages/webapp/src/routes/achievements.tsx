@@ -3,8 +3,6 @@ import { Badge } from '@caly/ui/components/badge';
 import { Card, CardDescription, CardHeader, CardTitle } from '@caly/ui/components/card';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import { Skeleton } from '@caly/ui/components/skeleton';
-import { Switch } from '@caly/ui/components/switch';
-import { BitCard } from '@caly/ui/arcade';
 import {
    ACHIEVEMENT_CATEGORY_LABELS,
    type Achievement,
@@ -14,7 +12,7 @@ import {
 import { AchievementShareMenu } from '../components/achievement-share-menu';
 import { ApiError } from '../lib/api/client';
 import { getAchievements } from '../lib/api/achievements';
-import { useRetroPreference } from '../lib/retro';
+import { useUiStyle } from '../lib/ui-style';
 
 const CATEGORY_ORDER: AchievementCategory[] = [
    'starter',
@@ -30,7 +28,7 @@ const CATEGORY_ORDER: AchievementCategory[] = [
 export function AchievementsPage() {
    const [data, setData] = useState<AchievementsResponse | null>(null);
    const [error, setError] = useState<string | null>(null);
-   const { retro, setRetro } = useRetroPreference();
+   const { pixel } = useUiStyle();
 
    useEffect(() => {
       getAchievements()
@@ -69,18 +67,9 @@ export function AchievementsPage() {
                   {unlocked} of {data.items.length} unlocked. Keep showing up.
                </p>
             </div>
-            <div className='flex items-center gap-3'>
-               {data.pending.length > 0 && (
-                  <Badge variant='secondary'>{data.pending.length} new</Badge>
-               )}
-               <label className='flex items-center gap-2 text-xs text-muted-foreground'>
-                  <Switch
-                     checked={retro}
-                     onCheckedChange={setRetro}
-                  />
-                  8-bit style
-               </label>
-            </div>
+            {data.pending.length > 0 && (
+               <Badge variant='secondary'>{data.pending.length} new</Badge>
+            )}
          </div>
 
          {groups.map((group) => (
@@ -93,7 +82,7 @@ export function AchievementsPage() {
                </h2>
                <div
                   className={
-                     retro
+                     pixel
                         ? 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3'
                         : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
                   }
@@ -102,7 +91,6 @@ export function AchievementsPage() {
                      <AchievementCard
                         key={achievement.id}
                         achievement={achievement}
-                        retro={retro}
                      />
                   ))}
                </div>
@@ -112,7 +100,7 @@ export function AchievementsPage() {
    );
 }
 
-function AchievementCard({ achievement, retro }: { achievement: Achievement; retro: boolean }) {
+function AchievementCard({ achievement }: { achievement: Achievement }) {
    const unlocked = Boolean(achievement.unlockedAt);
    const content = (
       <CardHeader className='flex flex-row items-start gap-3'>
@@ -128,26 +116,15 @@ function AchievementCard({ achievement, retro }: { achievement: Achievement; ret
                   <CardTitle className='text-sm'>{achievement.title}</CardTitle>
                   <Badge
                      variant={unlocked ? 'secondary' : 'outline'}
-                     className={retro ? 'retro text-[8px] uppercase' : 'text-[10px] uppercase'}
+                     className='text-[10px] uppercase'
                   >
                      {achievement.tier}
                   </Badge>
                </div>
-               {unlocked && (
-                  <AchievementShareMenu
-                     achievement={achievement}
-                     retro={retro}
-                  />
-               )}
+               {unlocked && <AchievementShareMenu achievement={achievement} />}
             </div>
             <CardDescription className='mt-1'>{achievement.description}</CardDescription>
-            <p
-               className={
-                  retro
-                     ? 'retro mt-2 text-[8px] text-muted-foreground'
-                     : 'mt-2 text-[11px] text-muted-foreground'
-               }
-            >
+            <p className='mt-2 text-[11px] text-muted-foreground'>
                {unlocked
                   ? `Unlocked ${new Date(achievement.unlockedAt!).toLocaleDateString()}`
                   : 'Locked'}
@@ -155,17 +132,6 @@ function AchievementCard({ achievement, retro }: { achievement: Achievement; ret
          </div>
       </CardHeader>
    );
-
-   if (retro) {
-      return (
-         <BitCard
-            font='normal'
-            className={unlocked ? 'h-full bg-card' : 'h-full bg-muted/20 opacity-60'}
-         >
-            {content}
-         </BitCard>
-      );
-   }
 
    return (
       <Card

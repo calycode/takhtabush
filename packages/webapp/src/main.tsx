@@ -3,7 +3,10 @@ import { LocationProvider } from 'preact-iso';
 import { App } from './App';
 import { AuthProvider } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
+import { initUiStyle } from './lib/ui-style';
 import './styles/globals.css';
+
+initUiStyle();
 
 const root = document.getElementById('app');
 if (!root) throw new Error('Root element #app not found');

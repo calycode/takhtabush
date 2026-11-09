@@ -59,6 +59,16 @@
          property="og:description"
          content="Takhtabush — a self-hosted flashcard learning app on one Cloudflare Worker."
       />
+      <script>
+         // Apply the saved UI skin before first paint so the standard shell never flashes.
+         try {
+            if (localStorage.getItem('takhtabush:ui-style') === 'pixel') {
+               document.documentElement.dataset.ui = 'pixel';
+            }
+         } catch {
+            // Private windows can block storage; the default skin still renders.
+         }
+      </script>
       <title>Takhtabush</title>
    </head>
    <body>

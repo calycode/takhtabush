@@ -22,18 +22,12 @@ const NETWORKS: Array<{ network: ShareNetwork | 'copy'; label: string }> = [
    { network: 'copy', label: 'Copy link' },
 ];
 
-export function AchievementShareMenu({
-   achievement,
-   retro = false,
-}: {
-   achievement: Achievement;
-   retro?: boolean;
-}) {
+export function AchievementShareMenu({ achievement }: { achievement: Achievement }) {
    function pick(network: ShareNetwork | 'copy') {
       if (network === 'copy') {
          void copyAchievementShare(achievement);
       } else {
-         openAchievementShare(network, achievement);
+         void openAchievementShare(network, achievement);
       }
       void recordAchievementShare(achievement)
          .then((items) => announceAchievements(items))
@@ -43,11 +37,7 @@ export function AchievementShareMenu({
    return (
       <DropdownMenu>
          <DropdownMenuTrigger
-            className={
-               retro
-                  ? 'retro border-2 border-foreground bg-[#1a2430] p-1.5 text-amber-300 [&_svg]:size-3.5'
-                  : 'border-0 p-1.5 [&_svg]:size-4'
-            }
+            className='border-0 p-1.5 [&_svg]:size-4'
             ariaLabel={`Share ${achievement.title}`}
          >
             <Share2Icon />

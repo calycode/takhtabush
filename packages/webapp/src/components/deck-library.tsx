@@ -82,7 +82,10 @@ function DeckMenuItems({
                Move to collection
                <span className='text-muted-foreground'>›</span>
             </summary>
-            <div className='absolute right-full top-0 mr-1 min-w-40 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'>
+            <div
+               data-slot='panel'
+               className='absolute right-full top-0 mr-1 min-w-40 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'
+            >
                <button
                   type='button'
                   className={cn(
@@ -122,7 +125,10 @@ function DeckMenuItems({
                Export
                <span className='text-muted-foreground'>›</span>
             </summary>
-            <div className='absolute right-full top-0 mr-1 min-w-24 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'>
+            <div
+               data-slot='panel'
+               className='absolute right-full top-0 mr-1 min-w-24 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'
+            >
                {(['csv', 'tsv', 'json'] as const).map((format) => (
                   <button
                      key={format}
@@ -636,6 +642,8 @@ function FilterChip({
    return (
       <button
          type='button'
+         data-slot='chip'
+         data-selected={active ? 'true' : 'false'}
          onClick={onClick}
          className={cn(
             'rounded-full border px-3 py-1 text-xs transition-colors',

@@ -1,0 +1,260 @@
+/**
+ * Pixel skin: an opt-in 8-bit shell over the existing design tokens.
+ *
+ * `data-ui="pixel"` is set on <html> by the web app. Everything here works on
+ * the shared primitives through their `data-slot` hooks, so there is no second
+ * component tree to keep in sync with `packages/ui/src/components`.
+ *
+ * Typography is deliberately scoped: pixel type on short, chrome-like strings
+ * (buttons, labels, tabs, badges, titles). Prose and form values stay in the
+ * sans stack — Press Start 2P at body sizes is genuinely hard to read.
+ *
+ * Tune the whole skin from the variables below. The rest of the file only
+ * consumes them.
+ */
+
+[data-ui='pixel'] {
+   /* ---------------------------------------------- tuning */
+   --pixel-radius: 0; /* Corners. Try 2-4px for a softer pixel look. */
+   --pixel-edge-color: var(--foreground); /* Outline/border ink. */
+   --pixel-edge-width: 2px; /* Buttons, inputs, chips, cards. */
+   --pixel-heavy-width: 3px; /* Dialogs and the app header. */
+   --pixel-shadow-x: 3px; /* Hard offset shadow. Set to 0 for flat panels. */
+   --pixel-shadow-y: 3px;
+   --pixel-shadow-color: color-mix(in oklch, var(--foreground) 30%, transparent);
+   --pixel-font: 'Press Start 2P', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+   --pixel-scanline-strength: 4%; /* CRT texture on the page. 0% disables it. */
+   /* ------------------------------------------------------ */
+
+   --radius: var(--pixel-radius);
+   --pixel-scanline: color-mix(
+      in oklch,
+      var(--foreground) var(--pixel-scanline-strength),
+      transparent
+   );
+}
+
+[data-ui='pixel'] [data-slot='app-shell'] {
+   background-image: repeating-linear-gradient(
+      to bottom,
+      var(--pixel-scanline) 0,
+      var(--pixel-scanline) 1px,
+      transparent 1px,
+      transparent 4px
+   );
+}
+
+[data-ui='pixel'] [data-slot='app-header'] {
+   border-bottom-width: var(--pixel-heavy-width);
+   border-bottom-color: var(--pixel-edge-color);
+   background: var(--background);
+   backdrop-filter: none;
+}
+
+/* Short chrome strings get the pixel face. `.font-heading` is a static utility
+ * in this Tailwind setup, so the skin has to target the class itself. */
+[data-ui='pixel'] .font-heading,
+[data-ui='pixel'] [data-slot='button']:not([data-bit]),
+[data-ui='pixel'] [data-slot='label'],
+[data-ui='pixel'] [data-slot='badge'],
+[data-ui='pixel'] [data-slot='kbd'],
+[data-ui='pixel'] [data-slot='tabs-trigger'],
+[data-ui='pixel'] [data-slot='table-head'],
+[data-ui='pixel'] [data-slot='dropdown-menu-item'],
+[data-ui='pixel'] [data-slot='select-trigger'],
+[data-ui='pixel'] [data-slot='select-item'],
+[data-ui='pixel'] [data-slot='chip'],
+[data-ui='pixel'] [data-slot='step'],
+[data-ui='pixel'] [data-slot='section-title'] {
+   font-family: var(--pixel-font);
+   letter-spacing: 0;
+   line-height: 1.6;
+}
+
+[data-ui='pixel'] [data-slot='button']:not([data-bit]) {
+   font-size: 0.625rem;
+}
+
+[data-ui='pixel'] [data-slot='label'],
+[data-ui='pixel'] [data-slot='chip'],
+[data-ui='pixel'] [data-slot='section-title'] {
+   font-size: 0.625rem;
+}
+
+[data-ui='pixel'] [data-slot='step'] {
+   font-size: 0.5625rem;
+}
+
+[data-ui='pixel'] [data-slot='tabs-trigger'] {
+   font-size: 0.5rem;
+}
+
+[data-ui='pixel'] [data-slot='badge'] {
+   font-size: 0.5rem;
+   text-transform: uppercase;
+}
+
+[data-ui='pixel'] [data-slot='table-head'] {
+   font-size: 0.5625rem;
+   text-transform: uppercase;
+}
+
+[data-ui='pixel'] [data-slot='dropdown-menu-item'],
+[data-ui='pixel'] [data-slot='select-trigger'],
+[data-ui='pixel'] [data-slot='select-item'] {
+   font-size: 0.5625rem;
+}
+
+/* Chunky controls. */
+[data-ui='pixel']
+   [data-slot='button']:not([data-bit]):not([data-variant='ghost']):not([data-variant='link']) {
+   border-width: var(--pixel-edge-width);
+   border-color: var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+   box-shadow: var(--pixel-shadow-x) var(--pixel-shadow-y) 0 0 var(--pixel-shadow-color);
+}
+
+[data-ui='pixel']
+   [data-slot='button']:not([data-bit]):not([data-variant='ghost']):not(
+      [data-variant='link']
+   ):active {
+   box-shadow: none;
+   transform: translate(var(--pixel-shadow-x), var(--pixel-shadow-y));
+}
+
+[data-ui='pixel'] [data-slot='input'],
+[data-ui='pixel'] [data-slot='textarea'],
+[data-ui='pixel'] [data-slot='select-trigger'],
+[data-ui='pixel'] [data-slot='dropdown-menu-trigger'] {
+   border-width: var(--pixel-edge-width);
+   border-color: var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+}
+
+[data-ui='pixel'] [data-slot='input'],
+[data-ui='pixel'] [data-slot='textarea'],
+[data-ui='pixel'] [data-slot='chip'] {
+   box-shadow: var(--pixel-shadow-x) var(--pixel-shadow-y) 0 0 var(--pixel-shadow-color);
+}
+
+[data-ui='pixel'] [data-slot='chip'] {
+   border: var(--pixel-edge-width) solid var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+   padding: 0.125rem 0.5rem;
+}
+
+[data-ui='pixel'] [data-slot='chip'][data-selected='true'] {
+   background: var(--primary);
+   color: var(--primary-foreground);
+}
+
+[data-ui='pixel'] [data-slot='step'] {
+   border: var(--pixel-edge-width) solid var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+}
+
+[data-ui='pixel'] [data-slot='step'][data-done='true'] {
+   background: var(--primary);
+   color: var(--primary-foreground);
+}
+
+[data-ui='pixel'] [data-slot='switch'] {
+   border-radius: var(--pixel-radius);
+   outline: var(--pixel-edge-width) solid var(--pixel-edge-color);
+   outline-offset: 0;
+}
+
+[data-ui='pixel'] [data-slot='switch'] > span {
+   border-radius: var(--pixel-radius);
+   box-shadow: none;
+   background: var(--foreground);
+}
+
+[data-ui='pixel'] [data-slot='progress'] {
+   border-radius: var(--pixel-radius);
+   outline: var(--pixel-edge-width) solid var(--pixel-edge-color);
+   outline-offset: 0;
+}
+
+[data-ui='pixel'] [data-slot='progress-indicator'] {
+   border-radius: var(--pixel-radius);
+}
+
+[data-ui='pixel'] [data-slot='kbd'] {
+   border-width: var(--pixel-edge-width);
+   border-color: var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+   background: var(--background);
+}
+
+[data-ui='pixel'] [data-slot='badge'] {
+   border-width: var(--pixel-edge-width);
+   border-color: var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+}
+
+/* Panels. */
+[data-ui='pixel'] [data-slot='card']:not([data-bit]),
+[data-ui='pixel'] [data-slot='panel'] {
+   border: var(--pixel-edge-width) solid var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+   box-shadow: var(--pixel-shadow-x) var(--pixel-shadow-y) 0 0 var(--pixel-shadow-color);
+}
+
+[data-ui='pixel'] [data-slot='dialog-content'] {
+   border: var(--pixel-heavy-width) solid var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+   /* The 1px halo keeps the dark border readable against the dark backdrop. */
+   box-shadow:
+      0 0 0 1px var(--background),
+      calc(var(--pixel-shadow-x) * 2) calc(var(--pixel-shadow-y) * 2) 0 0 var(--pixel-shadow-color);
+}
+
+[data-ui='pixel'] [data-slot='dropdown-menu-content'],
+[data-ui='pixel'] [data-slot='select-content'] {
+   border-width: var(--pixel-edge-width);
+   border-color: var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+   box-shadow: var(--pixel-shadow-x) var(--pixel-shadow-y) 0 0 var(--pixel-shadow-color);
+}
+
+[data-ui='pixel'] [data-slot='alert'] {
+   border-width: var(--pixel-edge-width);
+   border-radius: var(--pixel-radius);
+   box-shadow: var(--pixel-shadow-x) var(--pixel-shadow-y) 0 0 var(--pixel-shadow-color);
+}
+
+[data-ui='pixel'] [data-slot='tabs-list'] {
+   border: var(--pixel-edge-width) solid var(--pixel-edge-color);
+   border-radius: var(--pixel-radius);
+   background: transparent;
+   padding: 0;
+   gap: 0;
+   overflow: hidden;
+}
+
+[data-ui='pixel'] [data-slot='tabs-trigger'] {
+   border-radius: 0;
+   border-right: var(--pixel-edge-width) solid var(--pixel-edge-color);
+   box-shadow: none;
+   padding: 0.375rem 0.5rem;
+}
+
+[data-ui='pixel'] [data-slot='tabs-trigger']:last-child {
+   border-right: 0;
+}
+
+[data-ui='pixel'] [data-slot='tabs-trigger'][aria-selected='true'] {
+   background: var(--primary);
+   color: var(--primary-foreground);
+}
+
+[data-ui='pixel'] [data-slot='table-header'] [data-slot='table-row'] {
+   border-bottom-width: var(--pixel-edge-width);
+   border-bottom-color: var(--pixel-edge-color);
+}
+
+[data-ui='pixel'] [data-slot='empty'],
+[data-ui='pixel'] [data-slot='skeleton'] {
+   border-radius: var(--pixel-radius);
+}

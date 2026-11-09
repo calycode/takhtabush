@@ -36,6 +36,7 @@ function Select({
       >
          <SelectPrimitive.Trigger
             id={id}
+            data-slot='select-trigger'
             className={cn(
                'flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 data-popup-open:ring-2',
                className,
@@ -51,11 +52,15 @@ function Select({
                sideOffset={4}
                className='z-50'
             >
-               <SelectPrimitive.Popup className='max-h-64 min-w-[var(--anchor-width)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'>
+               <SelectPrimitive.Popup
+                  data-slot='select-content'
+                  className='max-h-64 min-w-[var(--anchor-width)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md'
+               >
                   {items.map((item) => (
                      <SelectPrimitive.Item
                         key={item.value}
                         value={item.value}
+                        data-slot='select-item'
                         className='flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1 text-xs outline-none select-none data-highlighted:bg-muted'
                      >
                         <SelectPrimitive.ItemText>{item.label}</SelectPrimitive.ItemText>

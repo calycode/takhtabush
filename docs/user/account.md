@@ -21,6 +21,10 @@ Signing out revokes the session on the server, not just in your browser.
 Choose **System**, **Light**, or **Dark** in settings. The choice is stored in
 your browser, not on the server.
 
+**Pixel UI** in **Settings → Preferences** switches the whole app to square
+panels, chunky borders, and pixel type. It is also stored in your browser. The
+arcade stays 8-bit either way.
+
 ## Owner and allowlist
 
 The first account on a deployment is the owner. The owner can:

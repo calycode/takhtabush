@@ -33,6 +33,7 @@ import {
 import { useAuth } from '../lib/auth';
 import { useArcadeEnabled } from '../lib/arcade-preferences';
 import { useTheme } from '../lib/theme';
+import { useUiStyle } from '../lib/ui-style';
 
 function when(iso: string): string {
    return new Date(iso).toLocaleString();
@@ -43,6 +44,7 @@ export function Settings() {
    const { user, signOut } = useAuth();
    const { theme, setTheme } = useTheme();
    const { arcadeEnabled, setArcadeEnabled } = useArcadeEnabled();
+   const { pixel, setPixel } = useUiStyle();
    const [tab, setTab] = useState('account');
    const [invite, setInvite] = useState('');
    const [sessions, setSessions] = useState<SessionInfo[]>([]);
@@ -211,6 +213,20 @@ export function Settings() {
                      </CardDescription>
                   </CardHeader>
                   <CardContent className='grid gap-3 sm:grid-cols-2'>
+                     <div className='col-span-full flex items-start justify-between gap-4 rounded-lg border p-3'>
+                        <div className='flex flex-col gap-0.5'>
+                           <Label htmlFor='pixel-ui'>Pixel UI</Label>
+                           <p className='text-xs text-muted-foreground'>
+                              Square panels, chunky borders, and pixel type across the app. The
+                              arcade stays 8-bit either way.
+                           </p>
+                        </div>
+                        <Switch
+                           id='pixel-ui'
+                           checked={pixel}
+                           onCheckedChange={setPixel}
+                        />
+                     </div>
                      <div className='col-span-full flex items-start justify-between gap-4 rounded-lg border p-3'>
                         <div className='flex flex-col gap-0.5'>
                            <Label htmlFor='arcade'>Arcade</Label>

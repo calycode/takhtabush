@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import type { Achievement } from '@caly/shared';
-import { BitButton, BitCard } from '@caly/ui/arcade';
 import { Button } from '@caly/ui/components/button';
 import {
    Card,
@@ -19,20 +18,7 @@ import {
 } from '../lib/achievement-share';
 import { announceAchievements, ACHIEVEMENT_EVENT } from '../lib/achievements';
 import { useAuth } from '../lib/auth';
-import { useRetroPreference } from '../lib/retro';
 import { ShareGlyph } from './share-glyphs';
-
-function AchievementAction({
-   retro,
-   children,
-   ...props
-}: ComponentProps<typeof Button> & { retro: boolean }) {
-   return retro ? (
-      <BitButton {...props}>{children}</BitButton>
-   ) : (
-      <Button {...props}>{children}</Button>
-   );
-}
 
 const SHARE_NETWORKS: Array<{ network: ShareNetwork; label: string }> = [
    { network: 'x', label: 'x.com' },
@@ -47,7 +33,6 @@ const SHARE_NETWORKS: Array<{ network: ShareNetwork; label: string }> = [
  */
 export function AchievementCelebration() {
    const { status } = useAuth();
-   const { retro } = useRetroPreference();
    const [queue, setQueue] = useState<Achievement[]>([]);
    const shown = useRef(new Set<string>());
 
@@ -129,9 +114,7 @@ export function AchievementCelebration() {
                   {current.icon}
                </span>
                <div className='min-w-0'>
-                  <CardDescription
-                     className={retro ? 'retro text-[8px] uppercase' : 'text-[10px] uppercase'}
-                  >
+                  <CardDescription className='text-[10px] uppercase'>
                      Achievement unlocked
                   </CardDescription>
                   <CardTitle className='mt-1 text-base'>{current.title}</CardTitle>
@@ -140,46 +123,35 @@ export function AchievementCelebration() {
             </div>
          </CardHeader>
          <CardContent className='flex flex-col gap-3'>
-            <p
-               className={
-                  retro
-                     ? 'retro text-[8px] leading-relaxed text-muted-foreground'
-                     : 'text-xs text-muted-foreground'
-               }
-            >
-               Brag about it?
-            </p>
+            <p className='text-xs text-muted-foreground'>Brag about it?</p>
             <div className='flex flex-wrap gap-5'>
                {SHARE_NETWORKS.map((item) => (
-                  <AchievementAction
+                  <Button
                      key={item.network}
-                     retro={retro}
                      size='sm'
                      variant='outline'
                      onClick={() => share(item.network)}
                   >
                      <ShareGlyph network={item.network} />
                      {item.label}
-                  </AchievementAction>
+                  </Button>
                ))}
-               <AchievementAction
-                  retro={retro}
+               <Button
                   size='sm'
                   variant='ghost'
                   onClick={copy}
                >
                   <ShareGlyph network='copy' />
                   Copy
-               </AchievementAction>
-               <AchievementAction
-                  retro={retro}
+               </Button>
+               <Button
                   size='sm'
                   variant='ghost'
                   className='ml-auto'
                   onClick={dismiss}
                >
                   Dismiss
-               </AchievementAction>
+               </Button>
             </div>
          </CardContent>
       </>
@@ -187,16 +159,7 @@ export function AchievementCelebration() {
 
    return (
       <div className='fixed inset-x-4 bottom-4 z-50 ml-auto w-auto max-w-sm sm:inset-x-auto sm:right-4'>
-         {retro ? (
-            <BitCard
-               font='normal'
-               className='bg-card shadow-2xl'
-            >
-               {body}
-            </BitCard>
-         ) : (
-            <Card className='shadow-2xl'>{body}</Card>
-         )}
+         <Card className='shadow-2xl'>{body}</Card>
       </div>
    );
 }

@@ -59,6 +59,7 @@ export function BitButton({
    return (
       <Button
          {...props}
+         data-bit=''
          size={size}
          variant={variant}
          className={cn(
@@ -81,9 +82,13 @@ export type BitCardProps = ComponentProps<typeof Card> & { font?: Font };
 /** 8bitcn-style card wrapper with the chunky pixelated border. */
 export function BitCard({ className, font = 'retro', children, ...props }: BitCardProps) {
    return (
-      <div className={cn('relative border-y-6 border-foreground bg-card p-0', className)}>
+      <div
+         data-bit=''
+         className={cn('relative border-y-6 border-foreground bg-card p-0', className)}
+      >
          <Card
             {...props}
+            data-bit=''
             className={cn(
                'flex h-full w-full flex-col overflow-visible rounded-none border-0 bg-card text-card-foreground shadow-none',
                font !== 'normal' && 'retro',

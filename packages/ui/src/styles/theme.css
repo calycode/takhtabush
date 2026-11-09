@@ -8,6 +8,7 @@
 @import './markdown.css';
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant pixel (&:is([data-ui='pixel'] *));
 
 :root {
    --background: oklch(1 0 0);

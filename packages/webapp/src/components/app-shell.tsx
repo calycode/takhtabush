@@ -4,8 +4,14 @@ import { AvatarMenu } from './avatar-menu';
 
 export function AppShell({ children }: { children: ComponentChildren }) {
    return (
-      <div className='min-h-dvh bg-background text-foreground'>
-         <header className='sticky top-0 z-40 flex items-center justify-between gap-4 border-b bg-background/95 px-4 py-2 backdrop-blur'>
+      <div
+         data-slot='app-shell'
+         className='min-h-dvh bg-background text-foreground'
+      >
+         <header
+            data-slot='app-header'
+            className='sticky top-0 z-40 flex items-center justify-between gap-4 border-b bg-background/95 px-4 py-2 backdrop-blur'
+         >
             <a
                href='/'
                className='inline-flex items-center'
