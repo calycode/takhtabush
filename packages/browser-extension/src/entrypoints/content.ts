@@ -168,6 +168,7 @@ export default defineContentScript({
    main(ctx) {
       let ui: Ui | null = null;
       let timer: number | undefined;
+      let lastPath = location.pathname;
       let pairCount = 0;
       let busy = false;
       let connectionStatus: ConnectionStatus | null = null;
@@ -200,6 +201,32 @@ export default defineContentScript({
          if (!ui) return;
          ui.clone.disabled = value;
          ui.clone.textContent = value ? 'Cloning…' : 'Clone this to my Takhtabush account';
+      }
+
+      /** Clear the previous set's result when the SPA moves to another page. */
+      function resetUiState(): void {
+         busy = false;
+         pairCount = 0;
+         if (!ui) return;
+
+         ui.clone.disabled = false;
+         ui.clone.textContent = 'Clone this to my Takhtabush account';
+         ui.settings.hidden = connectionStatus?.connected !== false;
+         ui.deck.hidden = true;
+         ui.deck.removeAttribute('href');
+         ui.deck.textContent = 'Open deck';
+         ui.status.hidden = true;
+         ui.status.textContent = '';
+         ui.status.removeAttribute('data-tone');
+      }
+
+      function handleNavigation(): void {
+         if (location.pathname === lastPath) return;
+         lastPath = location.pathname;
+         resetUiState();
+         // Reinsert on the next terms list; this also hides a stale card on
+         // pages that no longer have one.
+         ui?.host.remove();
       }
 
       function updateMeta(): void {
@@ -329,6 +356,8 @@ export default defineContentScript({
       }
 
       function ensure(): void {
+         handleNavigation();
+
          const list = findTermsList(document);
          if (!list) return;
 
@@ -349,6 +378,8 @@ export default defineContentScript({
       }
 
       function schedule(): void {
+         handleNavigation();
+
          if (timer !== undefined) clearTimeout(timer);
          timer = window.setTimeout(() => {
             timer = undefined;
