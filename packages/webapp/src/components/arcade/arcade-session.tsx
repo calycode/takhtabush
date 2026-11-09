@@ -108,6 +108,8 @@ export function ArcadeSession({
          <ArcadeCabinet
             statusLabel={won ? 'RUN COMPLETE' : 'RUN OVER'}
             statusDetail={`SCORE ${game.score.toLocaleString()}`}
+            minimizable={false}
+            size='wide'
             onClose={onExit}
          >
             <div className='flex flex-col items-center gap-5 text-center text-foreground'>
@@ -139,7 +141,7 @@ export function ArcadeSession({
                   />
                </div>
 
-               <div className='flex flex-wrap justify-center gap-2'>
+               <div className='flex flex-wrap justify-center gap-5'>
                   <BitButton onClick={onExit}>Back to deck</BitButton>
                   <BitButton
                      variant='outline'
@@ -163,16 +165,18 @@ export function ArcadeSession({
       <ArcadeCabinet
          statusLabel={game.kind === 'survival' ? 'SURVIVAL' : 'BOSS FIGHT'}
          statusDetail={`SCORE ${game.score.toLocaleString()}`}
+         minimizable={false}
+         size='wide'
          onClose={onExit}
       >
          <div className='flex flex-col gap-3 text-foreground'>
             <div className='flex flex-wrap items-center justify-between gap-2'>
                <div className='flex items-center gap-3'>
-                  <div className='border-4 border-foreground bg-black/70 px-3 py-1'>
-                     <div className='retro text-[7px] text-muted-foreground'>SCORE</div>
-                     <div className='retro text-sm text-amber-300'>
+                  <div className='flex items-center gap-2 border-4 border-foreground bg-black/70 px-3 py-1.5'>
+                     <span className='retro text-[7px] text-muted-foreground'>SCORE</span>
+                     <span className='retro text-3xl leading-none text-amber-300'>
                         {game.score.toLocaleString()}
-                     </div>
+                     </span>
                   </div>
                   {game.combo > 1 && (
                      <div className='retro border-4 border-emerald-400 bg-emerald-950/60 px-2 py-1 text-[9px] text-emerald-300'>
@@ -241,7 +245,7 @@ export function ArcadeSession({
                </div>
             </div>
 
-            <div className='grid gap-3 sm:grid-cols-2'>
+            <div className='grid gap-5 sm:grid-cols-2'>
                {options.map((option) => {
                   const isCorrect = option === correctValue;
                   const isPicked = option === picked;
@@ -249,12 +253,13 @@ export function ArcadeSession({
                      <BitButton
                         key={option}
                         variant='outline'
+                        title={option}
                         className={
                            isPicked
-                              ? `h-auto min-h-11 w-full justify-start whitespace-normal break-words px-3 py-3 text-left text-[10px] leading-relaxed ${
+                              ? `h-auto min-h-11 w-full justify-start whitespace-normal wrap-anywhere px-3 py-3 text-left text-[9px] leading-relaxed ${
                                    isCorrect ? 'bg-emerald-600 text-white' : 'bg-red-700 text-white'
                                 }`
-                              : 'h-auto min-h-11 w-full justify-start whitespace-normal break-words px-3 py-3 text-left text-[10px] leading-relaxed'
+                              : 'h-auto min-h-11 w-full justify-start whitespace-normal wrap-anywhere px-3 py-3 text-left text-[9px] leading-relaxed'
                         }
                         disabled={busy || picked !== null}
                         onClick={() => answer(option)}

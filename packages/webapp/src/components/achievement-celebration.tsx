@@ -20,6 +20,7 @@ import {
 import { announceAchievements, ACHIEVEMENT_EVENT } from '../lib/achievements';
 import { useAuth } from '../lib/auth';
 import { useRetroPreference } from '../lib/retro';
+import { ShareGlyph } from './share-glyphs';
 
 function AchievementAction({
    retro,
@@ -34,7 +35,7 @@ function AchievementAction({
 }
 
 const SHARE_NETWORKS: Array<{ network: ShareNetwork; label: string }> = [
-   { network: 'x', label: 'X' },
+   { network: 'x', label: 'x.com' },
    { network: 'reddit', label: 'Reddit' },
    { network: 'bluesky', label: 'Bluesky' },
 ];
@@ -148,15 +149,16 @@ export function AchievementCelebration() {
             >
                Brag about it?
             </p>
-            <div className='flex flex-wrap gap-1.5'>
+            <div className='flex flex-wrap gap-5'>
                {SHARE_NETWORKS.map((item) => (
                   <AchievementAction
                      key={item.network}
                      retro={retro}
                      size='sm'
-                     variant={item.network === 'x' ? 'default' : 'outline'}
+                     variant='outline'
                      onClick={() => share(item.network)}
                   >
+                     <ShareGlyph network={item.network} />
                      {item.label}
                   </AchievementAction>
                ))}
@@ -166,6 +168,7 @@ export function AchievementCelebration() {
                   variant='ghost'
                   onClick={copy}
                >
+                  <ShareGlyph network='copy' />
                   Copy
                </AchievementAction>
                <AchievementAction

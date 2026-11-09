@@ -8,3 +8,25 @@
    image-rendering: pixelated;
    image-rendering: crisp-edges;
 }
+
+/* The handheld morphs into the full cabinet through the View Transitions API. */
+.arcade-cabinet-morph {
+   view-transition-name: arcade-cabinet;
+}
+
+::view-transition-group(arcade-cabinet) {
+   animation-duration: 320ms;
+   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Keep the page itself still; only the cabinet/handheld morphs. */
+::view-transition-old(root),
+::view-transition-new(root) {
+   animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+   ::view-transition-group(arcade-cabinet) {
+      animation: none;
+   }
+}

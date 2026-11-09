@@ -13,9 +13,10 @@ import {
    recordAchievementShare,
    type ShareNetwork,
 } from '../lib/achievement-share';
+import { ShareGlyph } from './share-glyphs';
 
 const NETWORKS: Array<{ network: ShareNetwork | 'copy'; label: string }> = [
-   { network: 'x', label: 'Share on X' },
+   { network: 'x', label: 'Share on x.com' },
    { network: 'reddit', label: 'Share on Reddit' },
    { network: 'bluesky', label: 'Share on Bluesky' },
    { network: 'copy', label: 'Copy link' },
@@ -57,6 +58,7 @@ export function AchievementShareMenu({
                   key={item.network}
                   onSelect={() => pick(item.network)}
                >
+                  <ShareGlyph network={item.network} />
                   {item.label}
                </DropdownMenuItem>
             ))}

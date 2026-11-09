@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { useLocation } from 'preact-iso';
 import { Gamepad2Icon, SkullIcon } from 'lucide-react';
-import { Button } from '@caly/ui/components/button';
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@caly/ui/components/card';
-import { Card } from '@caly/ui/components/card';
 import { BitButton } from '@caly/ui/arcade';
 import type { GameMode } from '@caly/shared';
 import { ApiError } from '../../lib/api/client';
 import { startSession } from '../../lib/api/study';
+import { useArcadeEnabled } from '../../lib/arcade-preferences';
 import { ArcadeCabinet } from './arcade-cabinet';
 
 const MODES: Array<{
@@ -34,8 +32,8 @@ const MODES: Array<{
 ];
 
 /**
- * Opt-in arcade entry. The regular page stays regular; the cabinet only opens
- * when the user chooses to enter, and can be minimized into a handheld.
+ * The arcade living on the deck page. It is on by default and can be hidden
+ * from Settings; minimising turns the cabinet into a clickable handheld.
  */
 export function ArcadeLauncher({
    deckId,
@@ -47,12 +45,12 @@ export function ArcadeLauncher({
    cardCount: number;
 }) {
    const { route } = useLocation();
-   const [open, setOpen] = useState(false);
+   const { arcadeEnabled } = useArcadeEnabled();
    const [mode, setMode] = useState<GameMode>('survival');
    const [busy, setBusy] = useState(false);
    const [error, setError] = useState<string | null>(null);
 
-   if (cardCount < 4) return null;
+   if (!arcadeEnabled || cardCount < 4) return null;
 
    async function start() {
       setBusy(true);
@@ -72,38 +70,12 @@ export function ArcadeLauncher({
       }
    }
 
-   if (!open) {
-      return (
-         <Card>
-            <CardHeader>
-               <CardTitle className='flex items-center gap-2'>
-                  <Gamepad2Icon className='size-4' />
-                  Arcade
-               </CardTitle>
-               <CardDescription>
-                  A short survival run or a boss fight against your weakest cards.
-               </CardDescription>
-            </CardHeader>
-            <CardContent>
-               <Button
-                  variant='outline'
-                  onClick={() => setOpen(true)}
-               >
-                  <Gamepad2Icon />
-                  Enter arcade
-               </Button>
-            </CardContent>
-         </Card>
-      );
-   }
-
    const selected = MODES.find((item) => item.mode === mode) ?? MODES[0]!;
 
    return (
       <ArcadeCabinet
          statusLabel={mode === 'survival' ? 'SURVIVAL · 3 LIVES' : 'BOSS FIGHT · WEAK CARDS'}
          statusDetail={`${deckTitle} · ${cardCount} cards`}
-         onClose={() => setOpen(false)}
       >
          <div className='flex flex-col gap-4 text-foreground'>
             <div className='text-center'>
@@ -114,7 +86,7 @@ export function ArcadeLauncher({
                </p>
             </div>
 
-            <div className='grid gap-3 sm:grid-cols-2'>
+            <div className='grid gap-4 sm:grid-cols-2'>
                {MODES.map((item) => {
                   const Icon = item.icon;
                   const active = mode === item.mode;

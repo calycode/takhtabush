@@ -13,6 +13,7 @@ import {
 } from '@caly/ui/components/card';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import { Badge } from '@caly/ui/components/badge';
+import { Switch } from '@caly/ui/components/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@caly/ui/components/tabs';
 import {
    Table,
@@ -30,6 +31,7 @@ import {
    revokeSession,
 } from '../lib/api/auth';
 import { useAuth } from '../lib/auth';
+import { useArcadeEnabled } from '../lib/arcade-preferences';
 import { useTheme } from '../lib/theme';
 
 function when(iso: string): string {
@@ -40,6 +42,7 @@ export function Settings() {
    const { route } = useLocation();
    const { user, signOut } = useAuth();
    const { theme, setTheme } = useTheme();
+   const { arcadeEnabled, setArcadeEnabled } = useArcadeEnabled();
    const [tab, setTab] = useState('account');
    const [invite, setInvite] = useState('');
    const [sessions, setSessions] = useState<SessionInfo[]>([]);
@@ -208,6 +211,19 @@ export function Settings() {
                      </CardDescription>
                   </CardHeader>
                   <CardContent className='grid gap-3 sm:grid-cols-2'>
+                     <div className='col-span-full flex items-start justify-between gap-4 rounded-lg border p-3'>
+                        <div className='flex flex-col gap-0.5'>
+                           <Label htmlFor='arcade'>Arcade</Label>
+                           <p className='text-xs text-muted-foreground'>
+                              Show the survival and boss arcade on deck pages.
+                           </p>
+                        </div>
+                        <Switch
+                           id='arcade'
+                           checked={arcadeEnabled}
+                           onCheckedChange={setArcadeEnabled}
+                        />
+                     </div>
                      <div className='flex flex-col gap-1.5'>
                         <Label htmlFor='theme'>Theme</Label>
                         <Select

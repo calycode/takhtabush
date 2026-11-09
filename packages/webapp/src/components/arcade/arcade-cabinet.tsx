@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { flushSync, useState } from 'react';
 import type { ComponentChildren } from 'preact';
 import { Gamepad2Icon, MinusIcon, XIcon } from 'lucide-react';
 
 const STORAGE_KEY = 'takhtabush:arcadeMinimized';
+
+type ViewTransitionDocument = Document & {
+   startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+};
 
 function readMinimized(): boolean {
    try {
@@ -20,6 +24,10 @@ function storeMinimized(value: boolean): void {
    }
 }
 
+function prefersReducedMotion(): boolean {
+   return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+}
+
 /**
  * The arcade "fun island": a pixel cabinet around the game, collapsible into a
  * handheld phone. The app around it keeps its normal visual language.
@@ -29,27 +37,43 @@ export function ArcadeCabinet({
    statusLabel,
    statusDetail,
    onClose,
+   minimizable = true,
+   size = 'default',
 }: {
    children: ComponentChildren;
    statusLabel?: string;
    statusDetail?: string;
    onClose?: () => void;
+   /** Active study runs stay expanded so the player can never lose the board. */
+   minimizable?: boolean;
+   /** The dedicated study screen gets a wider cabinet. */
+   size?: 'default' | 'wide';
 }) {
    const [minimized, setMinimized] = useState(readMinimized);
+   const isMinimized = minimizable && minimized;
+   const widthClass = size === 'wide' ? 'max-w-[900px]' : 'max-w-[680px]';
 
    function toggleMinimized(value: boolean) {
-      setMinimized(value);
-      storeMinimized(value);
+      const update = () => {
+         flushSync(() => setMinimized(value));
+         storeMinimized(value);
+      };
+      const doc = document as ViewTransitionDocument;
+      if (!prefersReducedMotion() && typeof doc.startViewTransition === 'function') {
+         doc.startViewTransition(update);
+         return;
+      }
+      update();
    }
 
-   if (minimized) {
+   if (isMinimized) {
       return (
          <div className='mx-auto flex w-full max-w-[680px] flex-col items-center gap-2 py-2'>
             <button
                type='button'
                onClick={() => toggleMinimized(false)}
                aria-label='Expand arcade'
-               className='dark flex w-40 flex-col items-center gap-1.5 rounded-[22px] border-[6px] border-foreground bg-[#1a2430] p-2 text-left shadow-xl transition-transform hover:-translate-y-1'
+               className='arcade-cabinet-morph dark flex w-40 flex-col items-center gap-1.5 rounded-[22px] border-[6px] border-foreground bg-[#1a2430] p-2 text-left shadow-xl transition-transform hover:-translate-y-1'
             >
                <span className='retro w-full text-center text-[6px] tracking-widest text-amber-300'>
                   ARCADE
@@ -73,7 +97,9 @@ export function ArcadeCabinet({
    }
 
    return (
-      <div className='dark relative mx-auto w-full max-w-[680px] transition-transform lg:rotate-[-1.2deg]'>
+      <div
+         className={`arcade-cabinet-morph dark relative mx-auto w-full ${widthClass} transition-transform lg:rotate-[-1.2deg]`}
+      >
          <div className='relative rounded-[34px] border-[10px] border-foreground bg-[#0d141c] p-3 shadow-[0_34px_90px_-24px_rgba(0,0,0,0.8)] sm:p-4'>
             <div className='relative overflow-hidden rounded-[22px] border-4 border-foreground bg-[#151f2b] px-4 py-3'>
                <div
@@ -90,14 +116,16 @@ export function ArcadeCabinet({
                      </div>
                   </div>
                   <div className='flex shrink-0 gap-1'>
-                     <button
-                        type='button'
-                        onClick={() => toggleMinimized(true)}
-                        aria-label='Minimize arcade'
-                        className='grid size-7 place-items-center border-2 border-foreground bg-[#0d141c] text-foreground hover:bg-[#223041]'
-                     >
-                        <MinusIcon className='size-3.5' />
-                     </button>
+                     {minimizable && (
+                        <button
+                           type='button'
+                           onClick={() => toggleMinimized(true)}
+                           aria-label='Minimize arcade'
+                           className='grid size-7 place-items-center border-2 border-foreground bg-[#0d141c] text-foreground hover:bg-[#223041]'
+                        >
+                           <MinusIcon className='size-3.5' />
+                        </button>
+                     )}
                      {onClose && (
                         <button
                            type='button'
