@@ -19,7 +19,9 @@ export default defineConfig({
       preact({ reactAliasesEnabled: false }),
       tailwindcss(),
    ],
-   base: './',
+   // Deep links such as /decks/deck_123 must load assets from the site root.
+   // A relative base resolves them under /decks/... and the SPA never boots.
+   base: '/',
    build: {
       outDir: 'dist/client',
       emptyOutDir: true,
