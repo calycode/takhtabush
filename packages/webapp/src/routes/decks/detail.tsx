@@ -353,6 +353,7 @@ export function DeckDetail({ id }: { id?: string }) {
          {!isEmpty && (
             <ArcadeLauncher
                deckId={deck.id}
+               deckTitle={deck.title}
                cardCount={deck.cardCount}
             />
          )}

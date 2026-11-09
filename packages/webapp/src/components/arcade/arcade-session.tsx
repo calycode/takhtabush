@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
-import { Badge } from '@caly/ui/components/badge';
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@caly/ui/components/card';
-import { BitButton, BitCard, BitProgress, EnemyHealthDisplay } from '@caly/ui/arcade';
+import { BitButton, BitProgress, EnemyHealthDisplay } from '@caly/ui/arcade';
 import {
    cardAnswer,
    choiceOptionsFor,
@@ -16,6 +14,7 @@ import {
 import { ApiError } from '../../lib/api/client';
 import { recordReview } from '../../lib/api/study';
 import { toStudyCardData } from '../study/card-view';
+import { ArcadeCabinet } from './arcade-cabinet';
 
 export function ArcadeSession({
    session,
@@ -106,51 +105,51 @@ export function ArcadeSession({
    if (game.status !== 'playing') {
       const won = game.status === 'won';
       return (
-         <section className='mx-auto flex w-full max-w-2xl flex-col gap-4'>
-            <BitCard className={won ? 'border-emerald-500' : 'border-red-600'}>
-               <CardHeader className='items-center text-center'>
-                  <CardTitle
-                     className={
-                        won ? 'retro text-2xl text-emerald-500' : 'retro text-2xl text-red-500'
-                     }
-                  >
+         <ArcadeCabinet
+            statusLabel={won ? 'RUN COMPLETE' : 'RUN OVER'}
+            statusDetail={`SCORE ${game.score.toLocaleString()}`}
+            onClose={onExit}
+         >
+            <div className='flex flex-col items-center gap-5 text-center text-foreground'>
+               <div>
+                  <div className={`retro text-2xl ${won ? 'text-emerald-400' : 'text-red-500'}`}>
                      {won ? 'VICTORY!' : 'GAME OVER'}
-                  </CardTitle>
-                  <CardDescription className='retro text-[9px]'>
+                  </div>
+                  <p className='retro mt-3 text-[8px] leading-relaxed text-muted-foreground'>
                      {won
                         ? game.kind === 'boss'
                            ? 'Every boss defeated.'
                            : 'You cleared the survival queue.'
                         : 'The run ended — the scheduler still saved every review.'}
-                  </CardDescription>
-               </CardHeader>
-               <CardContent className='flex flex-col gap-5'>
-                  <div className='grid grid-cols-3 gap-2 text-center'>
-                     <Stat
-                        label='Score'
-                        value={game.score.toLocaleString()}
-                     />
-                     <Stat
-                        label='Best combo'
-                        value={`x${game.bestCombo}`}
-                     />
-                     <Stat
-                        label={game.kind === 'boss' ? 'Bosses' : 'Correct'}
-                        value={game.kind === 'boss' ? game.bossesDefeated : game.correct}
-                     />
-                  </div>
-                  <div className='flex flex-wrap justify-center gap-2'>
-                     <BitButton onClick={onExit}>Back to deck</BitButton>
-                     <BitButton
-                        variant='outline'
-                        onClick={onStats}
-                     >
-                        View stats
-                     </BitButton>
-                  </div>
-               </CardContent>
-            </BitCard>
-         </section>
+                  </p>
+               </div>
+
+               <div className='grid w-full grid-cols-3 gap-2'>
+                  <Stat
+                     label='Score'
+                     value={game.score.toLocaleString()}
+                  />
+                  <Stat
+                     label='Best combo'
+                     value={`x${game.bestCombo}`}
+                  />
+                  <Stat
+                     label={game.kind === 'boss' ? 'Bosses' : 'Correct'}
+                     value={game.kind === 'boss' ? game.bossesDefeated : game.correct}
+                  />
+               </div>
+
+               <div className='flex flex-wrap justify-center gap-2'>
+                  <BitButton onClick={onExit}>Back to deck</BitButton>
+                  <BitButton
+                     variant='outline'
+                     onClick={onStats}
+                  >
+                     View stats
+                  </BitButton>
+               </div>
+            </div>
+         </ArcadeCabinet>
       );
    }
 
@@ -161,132 +160,136 @@ export function ArcadeSession({
          : game.bossesDefeated + game.bosses.length;
 
    return (
-      <section className='mx-auto flex w-full max-w-2xl flex-col gap-4'>
-         <div className='flex flex-wrap items-center justify-between gap-3'>
-            <div className='flex flex-wrap items-center gap-2'>
-               <Badge
-                  variant='outline'
-                  className='retro text-[9px]'
-               >
-                  {game.kind === 'survival' ? 'SURVIVAL' : 'BOSS FIGHT'}
-               </Badge>
-               <span className='retro text-[10px] text-muted-foreground'>
-                  SCORE {game.score.toLocaleString()}
-               </span>
-               {game.combo > 1 && (
-                  <span className='retro text-[10px] text-amber-500'>COMBO x{game.combo}</span>
-               )}
-            </div>
-            <div className='flex items-center gap-2'>
-               <span
-                  className='retro flex gap-1 text-sm'
+      <ArcadeCabinet
+         statusLabel={game.kind === 'survival' ? 'SURVIVAL' : 'BOSS FIGHT'}
+         statusDetail={`SCORE ${game.score.toLocaleString()}`}
+         onClose={onExit}
+      >
+         <div className='flex flex-col gap-3 text-foreground'>
+            <div className='flex flex-wrap items-center justify-between gap-2'>
+               <div className='flex items-center gap-3'>
+                  <div className='border-4 border-foreground bg-black/70 px-3 py-1'>
+                     <div className='retro text-[7px] text-muted-foreground'>SCORE</div>
+                     <div className='retro text-sm text-amber-300'>
+                        {game.score.toLocaleString()}
+                     </div>
+                  </div>
+                  {game.combo > 1 && (
+                     <div className='retro border-4 border-emerald-400 bg-emerald-950/60 px-2 py-1 text-[9px] text-emerald-300'>
+                        COMBO x{game.combo}
+                     </div>
+                  )}
+               </div>
+               <div
+                  className='flex items-center gap-2 border-4 border-foreground bg-black/70 px-3 py-1.5'
                   aria-label={`${game.lives} of ${game.maxLives} lives left`}
                >
-                  {Array.from({ length: game.maxLives }, (_, index) => (
-                     <span
-                        key={index}
-                        className={index < game.lives ? 'text-red-500' : 'text-muted-foreground/30'}
-                     >
-                        ♥
-                     </span>
-                  ))}
-               </span>
-               <BitButton
-                  variant='ghost'
-                  size='sm'
-                  onClick={onExit}
-               >
-                  Exit
-               </BitButton>
-            </div>
-         </div>
-
-         {game.kind === 'boss' && boss && currentCard && (
-            <EnemyHealthDisplay
-               enemyName={currentCard.front}
-               level={game.bossesDefeated + 1}
-               currentHealth={boss.hp}
-               maxHealth={boss.maxHp}
-               healthBarColor='bg-red-500'
-            />
-         )}
-
-         {game.kind === 'survival' && (
-            <div className='flex flex-col gap-1'>
-               <BitProgress
-                  value={progressValue}
-                  max={Math.max(1, progressTotal)}
-               />
-               <span className='retro text-right text-[8px] text-muted-foreground'>
-                  {progressValue} / {progressTotal}
-               </span>
-            </div>
-         )}
-
-         {error && (
-            <Alert variant='destructive'>
-               <AlertDescription>{error}</AlertDescription>
-            </Alert>
-         )}
-
-         <BitCard font='normal'>
-            <CardHeader>
-               <CardDescription className='retro text-[8px] uppercase'>Prompt</CardDescription>
-               <CardTitle className='text-lg wrap-anywhere sm:text-xl'>
-                  {currentCard?.front ?? 'Loading card…'}
-               </CardTitle>
-            </CardHeader>
-            <CardContent className='flex flex-col gap-3'>
-               <div className='grid gap-2 sm:grid-cols-2'>
-                  {options.map((option) => {
-                     const isCorrect = option === correctValue;
-                     const isPicked = option === picked;
-                     return (
-                        <BitButton
-                           key={option}
-                           variant='outline'
-                           className={
-                              isPicked
-                                 ? isCorrect
-                                    ? 'min-h-11 bg-emerald-600 text-white'
-                                    : 'min-h-11 bg-red-700 text-white'
-                                 : 'min-h-11 whitespace-normal text-left text-[9px] leading-relaxed'
-                           }
-                           disabled={busy || picked !== null}
-                           onClick={() => answer(option)}
-                        >
-                           {option}
-                        </BitButton>
-                     );
-                  })}
-               </div>
-
-               {result && (
-                  <p
-                     className={
-                        result === 'correct'
-                           ? 'retro text-center text-sm text-emerald-500'
-                           : 'retro text-center text-sm text-red-500'
-                     }
+                  <span className='retro text-[7px] text-muted-foreground'>LIVES</span>
+                  <span
+                     className={`retro flex gap-1.5 text-3xl leading-none ${
+                        game.lives === 1 ? 'animate-pulse' : ''
+                     }`}
                   >
-                     {result === 'correct' ? 'CRITICAL HIT!' : 'MISS!'}
-                  </p>
-               )}
-               {result === 'incorrect' && (
-                  <p className='text-center text-xs text-muted-foreground'>
-                     Correct answer: <span className='font-medium'>{correctValue}</span>
-                  </p>
-               )}
-            </CardContent>
-         </BitCard>
-      </section>
+                     {Array.from({ length: game.maxLives }, (_, index) => (
+                        <span
+                           key={index}
+                           className={
+                              index < game.lives
+                                 ? 'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]'
+                                 : 'text-muted-foreground/20'
+                           }
+                        >
+                           ♥
+                        </span>
+                     ))}
+                  </span>
+               </div>
+            </div>
+
+            {game.kind === 'boss' && boss && currentCard && (
+               <EnemyHealthDisplay
+                  enemyName={currentCard.front}
+                  level={game.bossesDefeated + 1}
+                  currentHealth={boss.hp}
+                  maxHealth={boss.maxHp}
+                  healthBarColor='bg-red-500'
+               />
+            )}
+
+            {game.kind === 'survival' && (
+               <div className='flex flex-col gap-1'>
+                  <BitProgress
+                     value={progressValue}
+                     max={Math.max(1, progressTotal)}
+                  />
+                  <span className='retro text-right text-[8px] text-muted-foreground'>
+                     {progressValue} / {progressTotal}
+                  </span>
+               </div>
+            )}
+
+            {error && (
+               <Alert variant='destructive'>
+                  <AlertDescription>{error}</AlertDescription>
+               </Alert>
+            )}
+
+            <div className='border-4 border-foreground/60 bg-[#0b1118] p-3'>
+               <div className='retro text-[7px] uppercase text-muted-foreground'>PROMPT</div>
+               <div className='mt-2 text-lg font-medium wrap-anywhere sm:text-xl'>
+                  {currentCard?.front ?? 'Loading card…'}
+               </div>
+            </div>
+
+            <div className='grid gap-3 sm:grid-cols-2'>
+               {options.map((option) => {
+                  const isCorrect = option === correctValue;
+                  const isPicked = option === picked;
+                  return (
+                     <BitButton
+                        key={option}
+                        variant='outline'
+                        className={
+                           isPicked
+                              ? `h-auto min-h-11 w-full justify-start whitespace-normal break-words px-3 py-3 text-left text-[10px] leading-relaxed ${
+                                   isCorrect ? 'bg-emerald-600 text-white' : 'bg-red-700 text-white'
+                                }`
+                              : 'h-auto min-h-11 w-full justify-start whitespace-normal break-words px-3 py-3 text-left text-[10px] leading-relaxed'
+                        }
+                        disabled={busy || picked !== null}
+                        onClick={() => answer(option)}
+                     >
+                        {option}
+                     </BitButton>
+                  );
+               })}
+            </div>
+
+            {result && (
+               <p
+                  className={
+                     result === 'correct'
+                        ? 'retro text-center text-sm text-emerald-400'
+                        : 'retro text-center text-sm text-red-500'
+                  }
+               >
+                  {result === 'correct' ? 'CRITICAL HIT!' : 'MISS!'}
+               </p>
+            )}
+            {result === 'incorrect' && (
+               <p className='text-center text-xs text-muted-foreground'>
+                  Correct answer: <span className='font-medium'>{correctValue}</span>
+               </p>
+            )}
+         </div>
+      </ArcadeCabinet>
    );
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {
    return (
-      <div className='border-2 border-foreground/20 p-3'>
-         <div className='retro text-[8px] text-muted-foreground uppercase'>{label}</div>
+      <div className='border-4 border-foreground/40 bg-[#0b1118] p-3'>
+         <div className='retro text-[7px] text-muted-foreground uppercase'>{label}</div>
          <div className='retro mt-2 text-sm'>{value}</div>
       </div>
    );

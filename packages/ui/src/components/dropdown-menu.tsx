@@ -32,14 +32,17 @@ function DropdownMenu({
 
 function DropdownMenuTrigger({
    className,
+   ariaLabel,
    children,
 }: {
    className?: string;
+   ariaLabel?: string;
    children: ComponentChildren;
 }) {
    return (
       <summary
          data-slot='dropdown-menu-trigger'
+         aria-label={ariaLabel}
          className={cn(
             'inline-flex cursor-pointer list-none items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted [&::-webkit-details-marker]:hidden',
             className,

@@ -62,7 +62,7 @@ export function BitButton({
          size={size}
          variant={variant}
          className={cn(
-            'relative inline-flex items-center justify-center gap-1.5 rounded-none border-none transition-transform active:translate-y-1',
+            'relative inline-flex h-auto min-h-7 items-center justify-center gap-1.5 rounded-none border-none py-1 transition-transform active:translate-y-1',
             font !== 'normal' && 'retro',
             className,
          )}
@@ -85,7 +85,7 @@ export function BitCard({ className, font = 'retro', children, ...props }: BitCa
          <Card
             {...props}
             className={cn(
-               'flex h-full w-full flex-col rounded-none border-0 bg-card text-card-foreground shadow-none',
+               'flex h-full w-full flex-col overflow-visible rounded-none border-0 bg-card text-card-foreground shadow-none',
                font !== 'normal' && 'retro',
             )}
          >

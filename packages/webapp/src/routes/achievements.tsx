@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@caly/ui/components/badge';
-import { CardDescription, CardHeader, CardTitle } from '@caly/ui/components/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@caly/ui/components/card';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import { Skeleton } from '@caly/ui/components/skeleton';
+import { Switch } from '@caly/ui/components/switch';
 import { BitCard } from '@caly/ui/arcade';
 import {
    ACHIEVEMENT_CATEGORY_LABELS,
@@ -10,8 +11,10 @@ import {
    type AchievementCategory,
    type AchievementsResponse,
 } from '@caly/shared';
+import { AchievementShareMenu } from '../components/achievement-share-menu';
 import { ApiError } from '../lib/api/client';
 import { getAchievements } from '../lib/api/achievements';
+import { useRetroPreference } from '../lib/retro';
 
 const CATEGORY_ORDER: AchievementCategory[] = [
    'starter',
@@ -27,6 +30,7 @@ const CATEGORY_ORDER: AchievementCategory[] = [
 export function AchievementsPage() {
    const [data, setData] = useState<AchievementsResponse | null>(null);
    const [error, setError] = useState<string | null>(null);
+   const { retro, setRetro } = useRetroPreference();
 
    useEffect(() => {
       getAchievements()
@@ -65,7 +69,18 @@ export function AchievementsPage() {
                   {unlocked} of {data.items.length} unlocked. Keep showing up.
                </p>
             </div>
-            <Badge variant='secondary'>{data.pending.length} new</Badge>
+            <div className='flex items-center gap-3'>
+               {data.pending.length > 0 && (
+                  <Badge variant='secondary'>{data.pending.length} new</Badge>
+               )}
+               <label className='flex items-center gap-2 text-xs text-muted-foreground'>
+                  <Switch
+                     checked={retro}
+                     onCheckedChange={setRetro}
+                  />
+                  8-bit style
+               </label>
+            </div>
          </div>
 
          {groups.map((group) => (
@@ -76,11 +91,18 @@ export function AchievementsPage() {
                <h2 className='font-heading text-sm font-medium tracking-wide uppercase'>
                   {ACHIEVEMENT_CATEGORY_LABELS[group.category]}
                </h2>
-               <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+               <div
+                  className={
+                     retro
+                        ? 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3'
+                        : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+                  }
+               >
                   {group.items.map((achievement) => (
                      <AchievementCard
                         key={achievement.id}
                         achievement={achievement}
+                        retro={retro}
                      />
                   ))}
                </div>
@@ -90,38 +112,68 @@ export function AchievementsPage() {
    );
 }
 
-function AchievementCard({ achievement }: { achievement: Achievement }) {
+function AchievementCard({ achievement, retro }: { achievement: Achievement; retro: boolean }) {
    const unlocked = Boolean(achievement.unlockedAt);
-   return (
-      <BitCard
-         font='normal'
-         className={unlocked ? 'bg-card' : 'bg-muted/20 opacity-60'}
-      >
-         <CardHeader className='flex flex-row items-start gap-3'>
-            <span
-               className='text-3xl'
-               aria-hidden='true'
-            >
-               {unlocked ? achievement.icon : '🔒'}
-            </span>
-            <div className='min-w-0 flex-1'>
-               <div className='flex flex-wrap items-center gap-1.5'>
+   const content = (
+      <CardHeader className='flex flex-row items-start gap-3'>
+         <span
+            className='text-3xl'
+            aria-hidden='true'
+         >
+            {unlocked ? achievement.icon : '🔒'}
+         </span>
+         <div className='min-w-0 flex-1'>
+            <div className='flex items-start justify-between gap-2'>
+               <div className='flex min-w-0 flex-wrap items-center gap-1.5'>
                   <CardTitle className='text-sm'>{achievement.title}</CardTitle>
                   <Badge
                      variant={unlocked ? 'secondary' : 'outline'}
-                     className='retro text-[8px] uppercase'
+                     className={retro ? 'retro text-[8px] uppercase' : 'text-[10px] uppercase'}
                   >
                      {achievement.tier}
                   </Badge>
                </div>
-               <CardDescription className='mt-1'>{achievement.description}</CardDescription>
-               <p className='retro mt-2 text-[8px] text-muted-foreground'>
-                  {unlocked
-                     ? `Unlocked ${new Date(achievement.unlockedAt!).toLocaleDateString()}`
-                     : 'Locked'}
-               </p>
+               {unlocked && (
+                  <AchievementShareMenu
+                     achievement={achievement}
+                     retro={retro}
+                  />
+               )}
             </div>
-         </CardHeader>
-      </BitCard>
+            <CardDescription className='mt-1'>{achievement.description}</CardDescription>
+            <p
+               className={
+                  retro
+                     ? 'retro mt-2 text-[8px] text-muted-foreground'
+                     : 'mt-2 text-[11px] text-muted-foreground'
+               }
+            >
+               {unlocked
+                  ? `Unlocked ${new Date(achievement.unlockedAt!).toLocaleDateString()}`
+                  : 'Locked'}
+            </p>
+         </div>
+      </CardHeader>
+   );
+
+   if (retro) {
+      return (
+         <BitCard
+            font='normal'
+            className={unlocked ? 'h-full bg-card' : 'h-full bg-muted/20 opacity-60'}
+         >
+            {content}
+         </BitCard>
+      );
+   }
+
+   return (
+      <Card
+         className={
+            unlocked ? 'h-full overflow-visible' : 'h-full overflow-visible bg-muted/20 opacity-70'
+         }
+      >
+         {content}
+      </Card>
    );
 }
