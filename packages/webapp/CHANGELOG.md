@@ -1,5 +1,13 @@
 # @caly/webapp
 
+## 0.3.1
+
+### Patch Changes
+
+- ae0ac72: Fix the arcade on phones by letting the cabinet grow and the page scroll
+- @caly/shared@0.3.1
+   - @caly/ui@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

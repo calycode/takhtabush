@@ -1,5 +1,14 @@
 # @caly/api
 
+## 0.3.1
+
+### Patch Changes
+
+- @caly/mcp@0.3.1
+   - @caly/shared@0.3.1
+   - @caly/study-widget@0.3.1
+   - @caly/worker-kit@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
