@@ -25,6 +25,10 @@
       "packages/webapp": {
          "project": ["src/**/*.{ts,tsx}"],
       },
+      "packages/browser-extension": {
+         "project": ["src/**/*.ts"],
+         "entry": ["src/entrypoints/**/*.ts"],
+      },
    },
    "ignore": ["vitest.config.ts"],
    "ignoreDependencies": [

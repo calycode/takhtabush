@@ -8,6 +8,7 @@ import { CardEditor } from './routes/cards/editor';
 import { DeckDetail } from './routes/decks/detail';
 import { DeckEdit } from './routes/decks/edit';
 import { DeckImport } from './routes/decks/import';
+import { ExtensionConnect } from './routes/extension';
 import { Home } from './routes/home';
 import { Login } from './routes/login';
 import { McpGuide } from './routes/mcp';
@@ -88,6 +89,10 @@ export function App() {
             <Route
                path='/mcp'
                component={guard(McpGuide)}
+            />
+            <Route
+               path='/extension'
+               component={guard(ExtensionConnect)}
             />
             <Route
                default

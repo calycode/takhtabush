@@ -133,6 +133,16 @@ export function Login() {
                   >
                      {busy ? 'Working…' : 'Send sign-in link'}
                   </Button>
+                  <Button
+                     type='button'
+                     variant='outline'
+                     disabled={busy}
+                     onClick={() => {
+                        void refresh().then(() => route(next));
+                     }}
+                  >
+                     I've signed in in another tab — continue
+                  </Button>
                </form>
             </CardContent>
          </Card>

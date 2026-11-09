@@ -1,0 +1,298 @@
+:root {
+   color-scheme: light dark;
+   --tk-bg: #f4f6f5;
+   --tk-panel: #ffffff;
+   --tk-field: #fbfcfb;
+   --tk-fg: #111827;
+   --tk-muted: #6b7280;
+   --tk-border: #e2e8e4;
+   --tk-soft: #f3f7f4;
+   --tk-primary: #15803d;
+   --tk-primary-hover: #166534;
+   --tk-primary-fg: #ffffff;
+   --tk-success-bg: #ecfdf3;
+   --tk-success-fg: #166534;
+   --tk-error-bg: #fef2f2;
+   --tk-error-fg: #b91c1c;
+   --tk-info-bg: #eff6ff;
+   --tk-info-fg: #1d4ed8;
+}
+
+@media (prefers-color-scheme: dark) {
+   :root {
+      --tk-bg: #0b0f14;
+      --tk-panel: #111820;
+      --tk-field: #0f1720;
+      --tk-fg: #e5e7eb;
+      --tk-muted: #94a3b8;
+      --tk-border: #1f2937;
+      --tk-soft: #0f1720;
+      --tk-primary: #22c55e;
+      --tk-primary-hover: #16a34a;
+      --tk-primary-fg: #052e16;
+      --tk-success-bg: #052e16;
+      --tk-success-fg: #86efac;
+      --tk-error-bg: #2a1010;
+      --tk-error-fg: #fca5a5;
+      --tk-info-bg: #0f1d33;
+      --tk-info-fg: #93c5fd;
+   }
+}
+
+* {
+   box-sizing: border-box;
+}
+
+html,
+body {
+   margin: 0;
+}
+
+body {
+   background: var(--tk-bg);
+   color: var(--tk-fg);
+   font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
+   -webkit-font-smoothing: antialiased;
+}
+
+[hidden] {
+   display: none !important;
+}
+
+h1,
+h2,
+p {
+   margin: 0;
+}
+
+h1 {
+   font-size: 20px;
+   line-height: 1.2;
+   letter-spacing: -0.02em;
+}
+
+h2 {
+   font-size: 15px;
+   line-height: 1.3;
+}
+
+.tk-settings {
+   display: flex;
+   flex-direction: column;
+   gap: 16px;
+   max-width: 560px;
+   margin: 0 auto;
+   padding: 32px 20px 48px;
+}
+
+.tk-popup {
+   display: flex;
+   flex-direction: column;
+   gap: 16px;
+   width: 360px;
+   padding: 20px;
+}
+
+.tk-header {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+}
+
+.tk-header p {
+   margin-top: 3px;
+   color: var(--tk-muted);
+   font-size: 13px;
+   line-height: 1.4;
+}
+
+.tk-mark {
+   display: grid;
+   flex: 0 0 auto;
+   place-items: center;
+   width: 40px;
+   height: 40px;
+   border-radius: 11px;
+   background: var(--tk-primary);
+   color: var(--tk-primary-fg);
+   font-size: 18px;
+   font-weight: 800;
+}
+
+.tk-panel {
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   padding: 18px;
+   border: 1px solid var(--tk-border);
+   border-radius: 14px;
+   background: var(--tk-panel);
+   box-shadow: 0 18px 40px -32px rgba(15, 23, 42, 0.45);
+}
+
+.tk-muted {
+   color: var(--tk-muted);
+   font-size: 13px;
+   line-height: 1.5;
+}
+
+.tk-actions {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 8px;
+}
+
+.tk-actions-stack {
+   flex-direction: column;
+}
+
+.tk-form {
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+}
+
+.tk-form label {
+   margin-top: 2px;
+   color: var(--tk-muted);
+   font-size: 12px;
+   font-weight: 700;
+   letter-spacing: 0.03em;
+   text-transform: uppercase;
+}
+
+.tk-form input {
+   width: 100%;
+   height: 40px;
+   padding: 0 12px;
+   border: 1px solid var(--tk-border);
+   border-radius: 9px;
+   background: var(--tk-field);
+   color: var(--tk-fg);
+   font: inherit;
+   font-size: 14px;
+}
+
+.tk-form input:focus-visible {
+   border-color: var(--tk-primary);
+   outline: 2px solid color-mix(in srgb, var(--tk-primary) 30%, transparent);
+   outline-offset: 1px;
+}
+
+.tk-button {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   height: 40px;
+   padding: 0 16px;
+   border: 1px solid transparent;
+   border-radius: 9px;
+   background: transparent;
+   color: var(--tk-fg);
+   font: inherit;
+   font-size: 14px;
+   font-weight: 600;
+   line-height: 1;
+   text-decoration: none;
+   cursor: pointer;
+   transition:
+      background 0.15s,
+      border-color 0.15s,
+      opacity 0.15s;
+}
+
+.tk-button:focus-visible {
+   outline: 2px solid var(--tk-primary);
+   outline-offset: 2px;
+}
+
+.tk-button:disabled {
+   opacity: 0.55;
+   cursor: default;
+}
+
+.tk-button-primary {
+   background: var(--tk-primary);
+   color: var(--tk-primary-fg);
+}
+
+.tk-button-primary:hover:not(:disabled) {
+   background: var(--tk-primary-hover);
+}
+
+.tk-button-secondary {
+   border-color: var(--tk-border);
+   background: var(--tk-panel);
+}
+
+.tk-button-secondary:hover:not(:disabled) {
+   background: var(--tk-soft);
+}
+
+.tk-button-ghost {
+   color: var(--tk-muted);
+}
+
+.tk-button-ghost:hover:not(:disabled) {
+   background: var(--tk-soft);
+}
+
+.tk-hint {
+   color: var(--tk-muted);
+   font-size: 12px;
+   line-height: 1.5;
+}
+
+.tk-hint code {
+   padding: 1px 4px;
+   border-radius: 4px;
+   background: var(--tk-soft);
+   color: var(--tk-fg);
+   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+   font-size: 11px;
+}
+
+.tk-status {
+   padding: 10px 12px;
+   border-radius: 9px;
+   font-size: 13px;
+   line-height: 1.5;
+}
+
+.tk-status[data-tone='info'] {
+   background: var(--tk-info-bg);
+   color: var(--tk-info-fg);
+}
+
+.tk-status[data-tone='success'] {
+   background: var(--tk-success-bg);
+   color: var(--tk-success-fg);
+}
+
+.tk-status[data-tone='error'] {
+   background: var(--tk-error-bg);
+   color: var(--tk-error-fg);
+}
+
+.tk-advanced summary {
+   color: var(--tk-fg);
+   font-size: 14px;
+   font-weight: 600;
+   cursor: pointer;
+}
+
+.tk-advanced[open] summary {
+   margin-bottom: 2px;
+}
+
+.tk-footer {
+   color: var(--tk-muted);
+   font-size: 12px;
+   line-height: 1.5;
+}

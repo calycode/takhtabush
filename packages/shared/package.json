@@ -5,7 +5,8 @@
    "license": "MIT",
    "type": "module",
    "exports": {
-      ".": "./src/index.ts"
+      ".": "./src/index.ts",
+      "./limits": "./src/domain/limits.ts"
    },
    "scripts": {
       "check-types": "tsc --noEmit -p tsconfig.json",

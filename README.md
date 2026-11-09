@@ -18,6 +18,8 @@ private place for your decks.
 - **API** — [Hono](https://hono.dev) under `/api/v1`, backed by Cloudflare D1.
 - **Media** — R2-backed uploads with an authenticated read proxy at `/media/*`.
 - **MCP** — a stateless Streamable HTTP endpoint at `/mcp` for coding agents.
+- **Browser extension** — a WXT extension that clones Quizlet sets into a
+  Takhtabush deck.
 - **Clef** — optional AI Gateway decision layer that falls back to a
   deterministic, versioned scheduler.
 - **Shared UI** — shadcn/ui (Base UI) primitives generated into `packages/ui`.
@@ -158,6 +160,7 @@ packages/
 ├── webapp             Preact SPA (static assets)
 ├── api                Hono API + unified Worker entrypoint
 ├── mcp                MCP tools, scopes, audit
+├── browser-extension  WXT extension for cloning Quizlet sets
 ├── ui                 shared shadcn (Base UI) primitives
 ├── shared             Zod contracts, domain types, scheduler
 └── worker-kit         binding-agnostic Worker helpers
