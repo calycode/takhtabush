@@ -112,17 +112,12 @@ h2 {
    line-height: 1.4;
 }
 
-.tk-mark {
-   display: grid;
+.tk-logo {
    flex: 0 0 auto;
-   place-items: center;
    width: 40px;
    height: 40px;
-   border-radius: 11px;
-   background: var(--tk-primary);
-   color: var(--tk-primary-fg);
-   font-size: 18px;
-   font-weight: 800;
+   border-radius: 10px;
+   object-fit: contain;
 }
 
 .tk-panel {

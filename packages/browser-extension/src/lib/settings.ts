@@ -1,7 +1,6 @@
 import { browser } from 'wxt/browser';
 import { connectionStorage, getConnection, normalizeOrigin, permissionPattern } from './connection';
 import { AppError } from './errors';
-import { log } from './logger';
 import { verifyConnection } from './mcp';
 
 type StatusTone = 'info' | 'success' | 'error';
@@ -16,10 +15,12 @@ function setBusy(button: HTMLButtonElement, busy: boolean, label: string): void 
 }
 
 export function mountSettings(root: HTMLElement): void {
+   const logoUrl = browser.runtime.getURL('/icons/128.png');
+
    root.innerHTML = `
       <main class="tk-settings">
          <header class="tk-header">
-            <div class="tk-mark" aria-hidden="true">T</div>
+            <img class="tk-logo" src="${logoUrl}" alt="" />
             <div>
                <h1>Takhtabush Extension</h1>
                <p>Clone Quizlet sets into your Takhtabush account.</p>
@@ -97,11 +98,9 @@ export function mountSettings(root: HTMLElement): void {
 
    async function saveConnection(origin: string, token: string): Promise<void> {
       setStatus('Checking the connection…', 'info');
-      log.info('Verifying connection.', { origin });
       const connection = { origin, token, connectedAt: new Date().toISOString() };
       await verifyConnection(connection);
       await connectionStorage.setValue(connection);
-      log.info('Connection saved.', { origin });
       await refresh();
       setStatus(`Connected to ${origin}. Return to Quizlet to clone a set.`, 'success');
    }
@@ -119,13 +118,11 @@ export function mountSettings(root: HTMLElement): void {
       }
       instanceInput.value = origin;
       setBusy(connectButton, true, 'Connecting…');
-      log.info('Connect requested.', { origin });
 
       try {
          const granted = await browser.permissions.request({
             origins: [permissionPattern(origin)],
          });
-         log.info('Host permission result.', { origin, granted });
          if (!granted) {
             throw new AppError(
                'PERMISSION_DENIED',
@@ -139,7 +136,6 @@ export function mountSettings(root: HTMLElement): void {
          authUrl.searchParams.set('redirect_uri', redirectUri);
          authUrl.searchParams.set('state', state);
 
-         log.info('Opening sign-in flow.', { origin, redirectUri });
          const result = await browser.identity.launchWebAuthFlow({
             url: authUrl.toString(),
             interactive: true,
@@ -151,11 +147,6 @@ export function mountSettings(root: HTMLElement): void {
          const callback = new URL(result);
          const error = callback.searchParams.get('error');
          const token = callback.searchParams.get('token');
-         log.info('Sign-in callback received.', {
-            origin,
-            error: error ?? null,
-            hasToken: Boolean(token),
-         });
 
          if (error) {
             throw new AppError(
@@ -176,7 +167,6 @@ export function mountSettings(root: HTMLElement): void {
          await saveConnection(origin, token);
       } catch (cause) {
          const message = messageOf(cause);
-         log.error('Connect failed.', { message });
          setStatus(
             /did not approve|closed|cancel/i.test(message) ? 'Connection was cancelled.' : message,
             'error',
@@ -205,12 +195,10 @@ export function mountSettings(root: HTMLElement): void {
 
       manualOrigin.value = origin;
       setBusy(manualButton, true, 'Saving…');
-      log.info('Manual API key save requested.', { origin });
       try {
          const granted = await browser.permissions.request({
             origins: [permissionPattern(origin)],
          });
-         log.info('Host permission result.', { origin, granted });
          if (!granted) {
             throw new AppError(
                'PERMISSION_DENIED',
@@ -220,7 +208,6 @@ export function mountSettings(root: HTMLElement): void {
          await saveConnection(origin, token);
          manualToken.value = '';
       } catch (cause) {
-         log.error('Manual API key save failed.', { message: messageOf(cause) });
          setStatus(messageOf(cause), 'error');
       } finally {
          setBusy(manualButton, false, 'Save API key');
@@ -228,7 +215,6 @@ export function mountSettings(root: HTMLElement): void {
    });
 
    disconnectButton.addEventListener('click', async () => {
-      log.info('Disconnecting Takhtabush.');
       await connectionStorage.setValue(null);
       await refresh();
       setStatus('Disconnected.', 'info');
