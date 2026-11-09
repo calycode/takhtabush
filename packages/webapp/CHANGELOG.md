@@ -1,5 +1,19 @@
 # @caly/webapp
 
+## 0.3.0
+
+### Minor Changes
+
+- 83fb61d: Add deck analytics charts, survival and boss arcade modes, and a shareable achievement system.
+
+### Patch Changes
+
+- 4fe1821: Animate the arcade cabinet, show the arcade by default, and add a Settings toggle
+- Updated dependencies [83fb61d]
+- Updated dependencies [4fe1821]
+   - @caly/ui@0.3.0
+   - @caly/shared@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

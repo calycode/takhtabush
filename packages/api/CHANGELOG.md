@@ -1,5 +1,19 @@
 # @caly/api
 
+## 0.3.0
+
+### Minor Changes
+
+- 83fb61d: Add deck analytics charts, survival and boss arcade modes, and a shareable achievement system.
+
+### Patch Changes
+
+- Updated dependencies [83fb61d]
+   - @caly/shared@0.3.0
+   - @caly/worker-kit@0.3.0
+   - @caly/study-widget@0.3.0
+   - @caly/mcp@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

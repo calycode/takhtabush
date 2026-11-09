@@ -1,5 +1,14 @@
 # @caly/study-widget
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [83fb61d]
+- Updated dependencies [4fe1821]
+   - @caly/ui@0.3.0
+   - @caly/shared@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes
