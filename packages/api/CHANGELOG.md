@@ -1,5 +1,18 @@
 # @caly/api
 
+## 0.4.0
+
+### Minor Changes
+
+- Add one-time email sign-in codes alongside magic links
+
+### Patch Changes
+
+- @caly/study-widget@0.4.0
+   - @caly/mcp@0.4.0
+   - @caly/shared@0.4.0
+   - @caly/worker-kit@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes

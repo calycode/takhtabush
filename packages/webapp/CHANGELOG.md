@@ -1,5 +1,14 @@
 # @caly/webapp
 
+## 0.4.0
+
+### Patch Changes
+
+- da37feb: Add an opt-in pixel UI skin with a Settings toggle
+- Updated dependencies [da37feb]
+   - @caly/ui@0.4.0
+   - @caly/shared@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes
