@@ -3,7 +3,14 @@ import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { connectionStorage } from '@/lib/connection';
 import { log } from '@/lib/logger';
-import type { CloneResult, ConnectionStatus, Message, MessageResponse } from '@/lib/messages';
+import type {
+   CloneResult,
+   ConnectionStatus,
+   Message,
+   MessageResponse,
+   PageDiagnostics,
+   PagePingMessage,
+} from '@/lib/messages';
 import { findTermsList, parseQuizletSet } from '@/lib/quizlet';
 
 const HOST_ATTRIBUTE = 'data-takhtabush-clone';
@@ -468,6 +475,22 @@ export default defineContentScript({
          if (diagnosticTimer !== undefined) clearTimeout(diagnosticTimer);
          unwatch();
          ui?.host.remove();
+      });
+
+      browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+         if ((message as PagePingMessage | undefined)?.type !== 'page-ping') return false;
+
+         const set = parseQuizletSet(document);
+         const diagnostics: PageDiagnostics = {
+            url: location.href,
+            hasTermsList: Boolean(findTermsList(document)),
+            pairCount: set?.cards.length ?? 0,
+            title: set?.title ?? null,
+            buttonInjected: Boolean(ui?.host.isConnected),
+         };
+         log.info('Page diagnostic requested.', diagnostics);
+         sendResponse({ ok: true, data: diagnostics });
+         return true;
       });
 
       window.addEventListener('popstate', schedule);

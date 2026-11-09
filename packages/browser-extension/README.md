@@ -38,6 +38,14 @@ Then load `packages/browser-extension/dist/chrome-mv3` as an unpacked extension 
 
 The extension logs with the `[Takhtabush Extension]` prefix.
 
+- Open the extension popup on the Quizlet tab. **Check this page** runs
+  automatically and pings the content script directly:
+   - `Content script is NOT running on this tab` means the extension is not loaded
+     in that browser profile, the tab was not refreshed after loading/reloading
+     the extension, or Chrome's site access for Quizlet is blocked.
+   - `Content script is running... no terms list was found` means the bundle runs
+     but the Quizlet DOM no longer matches the parser selectors.
+   - `Button injected: yes/no` separates a missing button from a missing parser.
 - Open the Quizlet page DevTools console and filter for `[Takhtabush Extension]`.
 - `Content script started.` means the extension is running on that page. If you
   do not see it, the page is not matching the extension's URL patterns or the

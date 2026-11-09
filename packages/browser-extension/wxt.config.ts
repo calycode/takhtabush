@@ -16,6 +16,7 @@ export default defineConfig({
       name: 'Takhtabush Extension',
       description: 'Clone Quizlet sets into your Takhtabush account.',
       permissions: ['storage', 'identity'],
+      host_permissions: ['*://quizlet.com/*', '*://*.quizlet.com/*'],
       optional_host_permissions: ['http://*/*', 'https://*/*'],
    },
 });

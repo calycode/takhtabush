@@ -32,3 +32,16 @@ export type Message =
 
 export type MessageResponse =
    { ok: true; data?: unknown } | { ok: false; code: string; message: string };
+
+/** Sent by the popup directly to the content script in the active tab. */
+export type PagePingMessage = { type: 'page-ping' };
+
+export type PageDiagnostics = {
+   url: string;
+   hasTermsList: boolean;
+   pairCount: number;
+   title: string | null;
+   buttonInjected: boolean;
+};
+
+export type PagePingResponse = { ok: true; data: PageDiagnostics } | { ok: false; message: string };
