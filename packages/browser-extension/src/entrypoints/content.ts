@@ -2,6 +2,7 @@ import { MAX_CARDS_PER_DECK } from '@caly/shared/limits';
 import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { connectionStorage } from '@/lib/connection';
+import { log } from '@/lib/logger';
 import type { CloneResult, ConnectionStatus, Message, MessageResponse } from '@/lib/messages';
 import { findTermsList, parseQuizletSet } from '@/lib/quizlet';
 
@@ -168,9 +169,38 @@ export default defineContentScript({
    main(ctx) {
       let ui: Ui | null = null;
       let timer: number | undefined;
+      let diagnosticTimer: number | undefined;
+      let lastUrl = location.href;
+      let lastStatusLog = '';
       let pairCount = 0;
       let busy = false;
       let connectionStatus: ConnectionStatus | null = null;
+
+      log.info('Content script started.', {
+         url: location.href,
+         host: location.hostname,
+         readyState: document.readyState,
+      });
+
+      function logMissingTermsList(): void {
+         if (ui) return;
+         const termsList = document.querySelector('[data-testid="terms-list"]');
+         const sections = Array.from(document.querySelectorAll('section'));
+
+         log.warn('No terms list found; clone button was not injected.', {
+            url: location.href,
+            host: location.hostname,
+            readyState: document.readyState,
+            termsListElement: Boolean(termsList),
+            termTextCount: document.querySelectorAll('.TermText').length,
+            termTextFallbackCount: document.querySelectorAll('[class*="TermText"]').length,
+            sectionCount: sections.length,
+            firstSections: sections.slice(0, 5).map((section) => ({
+               testId: section.getAttribute('data-testid'),
+               termTexts: section.querySelectorAll('.TermText').length,
+            })),
+         });
+      }
 
       async function send(message: Message): Promise<MessageResponse> {
          try {
@@ -222,6 +252,24 @@ export default defineContentScript({
          connectionStatus = response.ok
             ? ((response.data as ConnectionStatus | undefined) ?? null)
             : null;
+
+         if (!response.ok) {
+            log.warn('Connection status check failed.', {
+               code: response.code,
+               message: response.message,
+            });
+         }
+
+         const statusLabel = connectionStatus
+            ? connectionStatus.connected
+               ? 'connected'
+               : 'not connected'
+            : 'unknown';
+         if (statusLabel !== lastStatusLog) {
+            lastStatusLog = statusLabel;
+            log.info('Connection status:', statusLabel, connectionStatus?.origin ?? '');
+         }
+
          if (connectionStatus && !connectionStatus.connected) ui.settings.hidden = false;
          updateMeta();
       }
@@ -231,20 +279,35 @@ export default defineContentScript({
 
          const set = parseQuizletSet(document);
          if (!set) {
+            log.warn('Clone aborted: no terms list found.');
             setStatus('Could not find a terms list on this page.', 'error');
             return;
          }
          if (set.cards.length === 0) {
+            log.warn('Clone aborted: no term/definition pairs parsed.', {
+               url: location.href,
+               termTextCount: document.querySelectorAll('.TermText').length,
+            });
             setStatus('No term/definition pairs were found yet.', 'error');
             return;
          }
          if (set.cards.length > MAX_CARDS_PER_DECK) {
+            log.warn('Clone aborted: deck card limit exceeded.', {
+               pairs: set.cards.length,
+               max: MAX_CARDS_PER_DECK,
+            });
             setStatus(
                `This set has ${set.cards.length} cards, but a Takhtabush deck holds at most ${MAX_CARDS_PER_DECK}.`,
                'error',
             );
             return;
          }
+
+         log.info('Clone requested.', {
+            url: location.href,
+            title: set.title,
+            pairs: set.cards.length,
+         });
 
          setBusy(true);
          setStatus('Cloning this set…', 'info');
@@ -255,6 +318,7 @@ export default defineContentScript({
          setBusy(false);
 
          if (!response.ok) {
+            log.error('Clone failed.', { code: response.code, message: response.message });
             setStatus(response.message, 'error');
             if (
                response.code === 'NOT_CONNECTED' ||
@@ -268,6 +332,13 @@ export default defineContentScript({
          }
 
          const result = response.data as CloneResult;
+         log.info('Clone completed.', {
+            deckId: result.deckId,
+            imported: result.imported,
+            updated: result.updated,
+            skipped: result.skipped,
+         });
+
          ui!.settings.hidden = true;
          ui!.deck.hidden = false;
          ui!.deck.href = `${result.origin}/decks/${result.deckId}`;
@@ -333,15 +404,31 @@ export default defineContentScript({
          if (!list) return;
 
          if (!ui) {
+            const set = parseQuizletSet(document);
             ui = mount(list);
-            pairCount = parseQuizletSet(document)?.cards.length ?? 0;
+            pairCount = set?.cards.length ?? 0;
+            if (diagnosticTimer !== undefined) {
+               clearTimeout(diagnosticTimer);
+               diagnosticTimer = undefined;
+            }
             updateMeta();
+            log.info('Clone button inserted.', {
+               url: location.href,
+               title: set?.title ?? null,
+               pairs: pairCount,
+               termsListTag: list.tagName,
+               termsListTestId: list.getAttribute('data-testid'),
+               parentTag: list.parentElement?.tagName ?? null,
+            });
             void checkStatus();
             return;
          }
 
          if (!ui.host.isConnected || ui.host.nextElementSibling !== list) {
             list.insertAdjacentElement('beforebegin', ui.host);
+            log.info('Clone button reinserted after a page re-render.', {
+               url: location.href,
+            });
          }
 
          pairCount = parseQuizletSet(document)?.cards.length ?? 0;
@@ -349,6 +436,15 @@ export default defineContentScript({
       }
 
       function schedule(): void {
+         if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            log.info('Page URL changed.', lastUrl);
+            if (!ui) {
+               if (diagnosticTimer !== undefined) clearTimeout(diagnosticTimer);
+               diagnosticTimer = window.setTimeout(logMissingTermsList, 5000);
+            }
+         }
+
          if (timer !== undefined) clearTimeout(timer);
          timer = window.setTimeout(() => {
             timer = undefined;
@@ -363,9 +459,13 @@ export default defineContentScript({
          void checkStatus();
       });
 
+      diagnosticTimer = window.setTimeout(logMissingTermsList, 5000);
+
       ctx.onInvalidated(() => {
+         log.info('Content script invalidated.');
          observer.disconnect();
          if (timer !== undefined) clearTimeout(timer);
+         if (diagnosticTimer !== undefined) clearTimeout(diagnosticTimer);
          unwatch();
          ui?.host.remove();
       });

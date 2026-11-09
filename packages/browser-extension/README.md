@@ -34,6 +34,21 @@ pnpm --filter @caly/browser-extension build
 Then load `packages/browser-extension/dist/chrome-mv3` as an unpacked extension from
 `chrome://extensions`.
 
+## Debugging
+
+The extension logs with the `[Takhtabush Extension]` prefix.
+
+- Open the Quizlet page DevTools console and filter for `[Takhtabush Extension]`.
+- `Content script started.` means the extension is running on that page. If you
+  do not see it, the page is not matching the extension's URL patterns or the
+  extension is not loaded in that browser profile.
+- `Clone button inserted.` includes the parsed pair count and the terms-list
+  element. `No terms list found; clone button was not injected.` includes
+  selector diagnostics (`.TermText` counts, section test IDs) if Quizlet changes
+  its DOM.
+- For background/MCP issues, open the service worker console from
+  `chrome://extensions` and look for the same prefix. Tokens are never logged.
+
 ## Connect
 
 1. Open the extension settings and enter your Takhtabush instance URL.
