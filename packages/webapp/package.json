@@ -18,7 +18,9 @@
       "@caly/ui": "workspace:*",
       "@fontsource-variable/noto-sans": "^5.3.0",
       "@fontsource-variable/roboto": "^5.3.0",
+      "@fontsource/press-start-2p": "^5.3.0",
       "agentation": "^3.1.2",
+      "canvas-confetti": "^1.9.4",
       "lucide-react": "^1.66.0",
       "preact": "^11.2.0",
       "preact-iso": "^2.12.2",
@@ -28,6 +30,7 @@
    "devDependencies": {
       "@preact/preset-vite": "^2.10.6",
       "@tailwindcss/vite": "^4.3.5",
+      "@types/canvas-confetti": "^1.9.0",
       "@types/node": "^26.6.5",
       "tailwindcss": "^4.3.0",
       "typescript": "^6.0.3",

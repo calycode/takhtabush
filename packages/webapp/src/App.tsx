@@ -4,6 +4,7 @@ import { Route, Router, useLocation } from 'preact-iso';
 import { AppShell } from './components/app-shell';
 import { RequireAuth } from './components/require-auth';
 import { AgentationToolbar } from './lib/agentation';
+import { AchievementsPage } from './routes/achievements';
 import { CardEditor } from './routes/cards/editor';
 import { DeckDetail } from './routes/decks/detail';
 import { DeckEdit } from './routes/decks/edit';
@@ -89,6 +90,10 @@ export function App() {
             <Route
                path='/mcp'
                component={guard(McpGuide)}
+            />
+            <Route
+               path='/achievements'
+               component={guard(AchievementsPage)}
             />
             <Route
                path='/extension'

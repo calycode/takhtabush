@@ -138,7 +138,9 @@ export function Home() {
                         className='flex flex-wrap items-center justify-between gap-2'
                      >
                         <span className='flex items-center gap-2 text-sm'>
-                           <Badge variant='outline'>{session.mode}</Badge>
+                           <Badge variant='outline'>
+                              {session.game ? session.game.kind : session.mode}
+                           </Badge>
                            {deckName(session.deckId)}
                            <span className='text-muted-foreground'>
                               · {new Date(session.startedAt).toLocaleString()}

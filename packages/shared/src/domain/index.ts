@@ -5,4 +5,6 @@ export * from './journey';
 export * from './grading';
 export * from './study-interaction';
 export * from './study-card';
+export * from './game';
+export * from './achievements';
 export * from './markdown';

@@ -1,4 +1,5 @@
 import type { ComponentChildren } from 'preact';
+import { AchievementCelebration } from './achievement-celebration';
 import { AvatarMenu } from './avatar-menu';
 
 export function AppShell({ children }: { children: ComponentChildren }) {
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: ComponentChildren }) {
             <AvatarMenu />
          </header>
          <main className='mx-auto w-full max-w-5xl px-4 py-8'>{children}</main>
+         <AchievementCelebration />
       </div>
    );
 }

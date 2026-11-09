@@ -122,7 +122,8 @@ export const mcpUpdateCardInputSchema = updateCardInputSchema.extend({ id: idSch
 
 export const mcpDeleteCardInputSchema = z.object({ id: idSchema });
 
-export const mcpStartSessionInputSchema = startSessionInputSchema;
+/** Arcade sessions are a web-app feature; MCP sessions stay deterministic study plans. */
+export const mcpStartSessionInputSchema = startSessionInputSchema.omit({ game: true });
 
 export const mcpRecordReviewInputSchema = reviewEventInputSchema.extend({ sessionId: idSchema });
 

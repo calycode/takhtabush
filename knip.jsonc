@@ -38,6 +38,7 @@
       "tailwindcss",
       "@fontsource-variable/roboto",
       "@fontsource-variable/noto-sans",
+      "@fontsource/press-start-2p",
    ],
    "rules": {
       "exports": "off",

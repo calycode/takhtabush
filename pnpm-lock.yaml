@@ -234,9 +234,15 @@ importers:
          '@fontsource-variable/roboto':
             specifier: ^5.3.0
             version: 5.3.0
+         '@fontsource/press-start-2p':
+            specifier: ^5.3.0
+            version: 5.3.0
          agentation:
             specifier: ^3.1.2
             version: 3.1.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+         canvas-confetti:
+            specifier: ^1.9.4
+            version: 1.9.4
          lucide-react:
             specifier: ^1.66.0
             version: 1.70.0(react@19.2.8)
@@ -259,6 +265,9 @@ importers:
          '@tailwindcss/vite':
             specifier: ^4.3.5
             version: 4.3.5(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+         '@types/canvas-confetti':
+            specifier: ^1.9.0
+            version: 1.9.0
          '@types/node':
             specifier: ^26.6.5
             version: 26.6.6
@@ -1255,6 +1264,12 @@ packages:
       resolution:
          {
             integrity: sha512-BoaaZiQf8fgtxv07KXkTwx1bKz/EoqIlTXq2OOKKXINxp6qXWdnlChqV+hSaDANS49yyUASFl3OVBMMDTCIHFA==,
+         }
+
+   '@fontsource/press-start-2p@5.3.0':
+      resolution:
+         {
+            integrity: sha512-gxWFxdeDglPhEYSwEeooomcaFK8kSQYLQwVxfnOJeYRj2sPEHXjpVtFgEaYfqzOjuAJGrIcJOipu2KY5YkbyuQ==,
          }
 
    '@fregante/relaxed-json@2.0.0':
@@ -2663,6 +2678,12 @@ packages:
             integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==,
          }
 
+   '@types/canvas-confetti@1.9.0':
+      resolution:
+         {
+            integrity: sha512-aBGj/dULrimR1XDZLtG9JwxX1b4HPRF6CX9Yfwh3NvstZEm1ZL7RBnel4keCPSqs1ANRu1u2Aoz9R+VmtjYuTg==,
+         }
+
    '@types/chai@5.2.3':
       resolution:
          {
@@ -3239,6 +3260,12 @@ packages:
       resolution:
          {
             integrity: sha512-TQ5s/djDjNk1axreUW+4rULH+BmdCMLiJkhaXnO5wqivG7tITkSUj4ItIdzqdZHKaXcHAV8dhH3JxOM7/7bwqw==,
+         }
+
+   canvas-confetti@1.9.4:
+      resolution:
+         {
+            integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==,
          }
 
    chai@6.3.0:
@@ -7811,6 +7838,8 @@ snapshots:
 
    '@fontsource-variable/roboto@5.3.0': {}
 
+   '@fontsource/press-start-2p@5.3.0': {}
+
    '@fregante/relaxed-json@2.0.0': {}
 
    '@humanfs/core@0.19.2':
@@ -8469,6 +8498,8 @@ snapshots:
          tslib: 2.8.1
       optional: true
 
+   '@types/canvas-confetti@1.9.0': {}
+
    '@types/chai@5.2.3':
       dependencies:
          '@types/deep-eql': 4.0.2
@@ -8842,6 +8873,8 @@ snapshots:
    caniuse-lite@1.0.30001806: {}
 
    caniuse-lite@1.0.30001823: {}
+
+   canvas-confetti@1.9.4: {}
 
    chai@6.3.0: {}
 

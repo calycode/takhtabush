@@ -15,8 +15,8 @@ export async function getDeckCounts(
    const row = await env.DB.prepare(
       `SELECT
           COUNT(*) AS total_cards,
-          COALESCE(SUM(CASE WHEN ls.card_id IS NULL THEN 1 ELSE 0 END), 0) AS new_cards,
-          COALESCE(SUM(CASE WHEN ls.card_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS learning_cards,
+          COALESCE(SUM(CASE WHEN c.status != 'suspended' AND ls.card_id IS NULL THEN 1 ELSE 0 END), 0) AS new_cards,
+          COALESCE(SUM(CASE WHEN c.status != 'suspended' AND ls.card_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS learning_cards,
           COALESCE(SUM(CASE WHEN c.status = 'suspended' THEN 1 ELSE 0 END), 0) AS suspended_cards
          FROM cards c
          LEFT JOIN learning_state ls ON ls.card_id = c.id AND ls.user_id = ?

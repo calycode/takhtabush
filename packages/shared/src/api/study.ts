@@ -3,6 +3,7 @@ import { idSchema, isoDateSchema } from './common';
 import { MAX_CARDS_PER_DECK } from '../domain/limits';
 import { learningStateSchema } from '../domain/scheduler';
 import { studyPlanSchema } from '../domain/journey';
+import { gameModeSchema, gameStateSchema } from '../domain/game';
 import {
    createdBySchema,
    journeyStrategySchema,
@@ -29,6 +30,7 @@ export const studyOptionsSchema = z.object({
    newCount: z.number().int().nonnegative(),
    typeCounts: studyTypeCountsSchema,
    availableModes: z.array(studyModeSchema),
+   availableGames: z.array(gameModeSchema),
 });
 
 export type StudyOptions = z.infer<typeof studyOptionsSchema>;
@@ -58,6 +60,8 @@ export const startSessionInputSchema = z.object({
    goal: studyGoalSchema.default('learn'),
    minutes: z.number().int().min(1).max(180).default(15),
    cardIds: z.array(idSchema).max(MAX_CARDS_PER_DECK).optional(),
+   /** Start an arcade session instead of a regular study session. */
+   game: gameModeSchema.optional(),
 });
 
 export type StartSessionInput = z.infer<typeof startSessionInputSchema>;
@@ -76,6 +80,8 @@ export const studySessionSchema = z.object({
    startedAt: isoDateSchema,
    completedAt: isoDateSchema.nullable(),
    createdBy: createdBySchema,
+   /** Present for arcade sessions. */
+   game: gameStateSchema.optional(),
 });
 
 export type StudySession = z.infer<typeof studySessionSchema>;
@@ -106,6 +112,7 @@ export const reviewResultSchema = z.object({
    event: reviewEventSchema,
    state: learningStateSchema,
    remaining: z.number().int().nonnegative(),
+   game: gameStateSchema.optional(),
 });
 
 export type ReviewResult = z.infer<typeof reviewResultSchema>;

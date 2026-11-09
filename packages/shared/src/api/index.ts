@@ -12,3 +12,4 @@ export * from './stats';
 export * from './ai';
 export * from './mcp';
 export * from './api-keys';
+export * from './achievements';

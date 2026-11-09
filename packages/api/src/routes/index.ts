@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { AppBindings } from '../env';
 import { csrfProtection, requireAuth } from '../middleware/auth';
+import { achievementRoutes } from './achievements';
 import { aiRoutes } from './ai';
 import { apiKeyRoutes } from './api-keys';
 import { authRoutes } from './auth';
@@ -36,6 +37,7 @@ export function registerRoutes(app: Hono<AppBindings>): Hono<AppBindings> {
    protectedApi.route('/stats', statsRoutes);
    protectedApi.route('/ai', aiRoutes);
    protectedApi.route('/api-keys', apiKeyRoutes);
+   protectedApi.route('/achievements', achievementRoutes);
 
    app.route('/api/v1', protectedApi);
    return app;

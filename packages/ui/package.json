@@ -10,6 +10,8 @@
       "./study/*": "./src/study/*.tsx",
       "./markdown": "./src/markdown/index.ts",
       "./markdown/*": "./src/markdown/*.tsx",
+      "./arcade": "./src/arcade/index.ts",
+      "./arcade/*": "./src/arcade/*.tsx",
       "./styles/*": "./src/styles/*.css",
       "./hooks/*": "./src/hooks/*.ts",
       "./lib/*": "./src/lib/*.ts"

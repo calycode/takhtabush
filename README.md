@@ -166,6 +166,9 @@ packages/
 └── worker-kit         binding-agnostic Worker helpers
 ```
 
+The arcade UI primitives in `@caly/ui/arcade` are adapted from
+[8bitcn/ui](https://www.8bitcn.com/) (MIT).
+
 ## Conventions
 
 - React imports resolve to `preact/compat` via **both** Vite and `tsconfig`.

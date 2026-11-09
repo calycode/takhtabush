@@ -67,6 +67,7 @@ export function mapMedia(row: Record<string, unknown>): MediaObject {
 }
 
 export function mapSession(row: Record<string, unknown>): StudySession {
+   const gameJson = row.game_state_json as string | null;
    return {
       id: String(row.id),
       userId: String(row.user_id),
@@ -78,6 +79,7 @@ export function mapSession(row: Record<string, unknown>): StudySession {
       startedAt: String(row.started_at),
       completedAt: (row.completed_at as string | null) ?? null,
       createdBy: (row.created_by as StudySession['createdBy']) ?? 'user',
+      ...(gameJson ? { game: JSON.parse(gameJson) as NonNullable<StudySession['game']> } : {}),
    };
 }
 

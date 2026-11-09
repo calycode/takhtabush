@@ -5,4 +5,6 @@
 @source '../../../ui/src';
 @import '@fontsource-variable/roboto';
 @import '@fontsource-variable/noto-sans';
+@import '@fontsource/press-start-2p';
 @import '../../../ui/src/styles/theme.css';
+@import '../../../ui/src/styles/retro.css';

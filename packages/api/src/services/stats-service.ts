@@ -3,6 +3,7 @@ import { newId } from '@caly/worker-kit';
 import type { AppEnv } from '../env';
 import {
    getDueForecast,
+   getReviewAccuracyTrend,
    getReviewActivity,
    getReviewAggregate,
    getUserReviewActivity,
@@ -22,15 +23,17 @@ export async function computeDeckStats(
    const now = new Date();
    const nowIso = now.toISOString();
 
-   const [counts, aggregate, streak, forecast, weak, dueIds, activity] = await Promise.all([
-      getDeckCounts(env, userId, deckId),
-      getReviewAggregate(env, userId, deckId),
-      getCachedReviewStreak(env, userId),
-      getDueForecast(env, userId, deckId, nowIso, 14),
-      getWeakCards(env, userId, deckId, 10),
-      listDueCardIds(env, userId, deckId, nowIso, 500),
-      getReviewActivity(env, userId, deckId, 112),
-   ]);
+   const [counts, aggregate, streak, forecast, weak, dueIds, activity, accuracyTrend] =
+      await Promise.all([
+         getDeckCounts(env, userId, deckId),
+         getReviewAggregate(env, userId, deckId),
+         getCachedReviewStreak(env, userId),
+         getDueForecast(env, userId, deckId, nowIso, 14),
+         getWeakCards(env, userId, deckId, 10),
+         listDueCardIds(env, userId, deckId, nowIso, 500),
+         getReviewActivity(env, userId, deckId, 112),
+         getReviewAccuracyTrend(env, userId, deckId, 112),
+      ]);
 
    return {
       deckId,
@@ -44,6 +47,7 @@ export async function computeDeckStats(
       streak,
       dueForecast: forecast,
       activity,
+      accuracyTrend,
       weakCards: weak,
    };
 }

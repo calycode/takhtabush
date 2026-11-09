@@ -26,6 +26,15 @@ export const overviewStatsSchema = z.object({
 
 export type OverviewStats = z.infer<typeof overviewStatsSchema>;
 
+export const accuracyTrendPointSchema = z.object({
+   date: z.string(),
+   total: z.number().int().nonnegative(),
+   correct: z.number().int().nonnegative(),
+   accuracy: z.number().min(0).max(1),
+});
+
+export type AccuracyTrendPoint = z.infer<typeof accuracyTrendPointSchema>;
+
 export const deckStatsSchema = z.object({
    deckId: idSchema,
    totalCards: z.number().int().nonnegative(),
@@ -39,6 +48,8 @@ export const deckStatsSchema = z.object({
    dueForecast: z.array(dueForecastPointSchema),
    /** Past review counts per day (sparse — days with no reviews are omitted). */
    activity: z.array(dueForecastPointSchema),
+   /** Past accuracy per day (sparse — days with no reviews are omitted). */
+   accuracyTrend: z.array(accuracyTrendPointSchema),
    weakCards: z.array(weakCardSchema),
 });
 

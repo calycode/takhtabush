@@ -1,5 +1,12 @@
 import { newId, nowIso } from '@caly/worker-kit';
-import type { LearningState, ReviewEvent, StudySession, WeakCard } from '@caly/shared';
+import type {
+   GameMode,
+   GameState,
+   LearningState,
+   ReviewEvent,
+   StudySession,
+   WeakCard,
+} from '@caly/shared';
 import type { AppEnv } from '../env';
 import { chunk, D1_MAX_BOUND_PARAMS, placeholders } from '../lib/d1';
 import { mapReviewEvent, mapSession } from '../lib/map';
@@ -43,14 +50,15 @@ export async function createStudySession(
       strategy: string | null;
       plannedCardIds: string[];
       createdBy: string;
+      game?: GameState;
    },
 ): Promise<StudySession> {
    const id = input.id;
    const now = nowIso();
    await env.DB.prepare(
       `INSERT INTO study_sessions
-         (id, user_id, deck_id, mode, strategy, planned_card_ids_json, status, started_at, completed_at, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, NULL, ?)`,
+         (id, user_id, deck_id, mode, strategy, planned_card_ids_json, status, started_at, completed_at, created_by, game_state_json)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, NULL, ?, ?)`,
    )
       .bind(
          id,
@@ -61,11 +69,60 @@ export async function createStudySession(
          JSON.stringify(input.plannedCardIds),
          now,
          input.createdBy,
+         input.game ? JSON.stringify(input.game) : null,
       )
       .run();
    const row = await getStudySessionRow(env, id);
    if (!row) throw new Error('Failed to create study session');
    return mapSession(row);
+}
+
+export async function updateStudySessionGame(
+   env: AppEnv,
+   id: string,
+   game: GameState,
+): Promise<void> {
+   await env.DB.prepare('UPDATE study_sessions SET game_state_json = ? WHERE id = ?')
+      .bind(JSON.stringify(game), id)
+      .run();
+}
+
+export type GameResultInput = {
+   id: string;
+   userId: string;
+   sessionId: string;
+   deckId: string;
+   mode: GameMode;
+   result: 'won' | 'lost';
+   score: number;
+   bestCombo: number;
+   livesLeft: number;
+   bossesDefeated: number;
+   durationMs: number | null;
+   createdAt: string;
+};
+
+export async function insertGameResult(env: AppEnv, input: GameResultInput): Promise<void> {
+   await env.DB.prepare(
+      `INSERT OR IGNORE INTO game_results
+         (id, user_id, session_id, deck_id, mode, result, score, best_combo, lives_left, bosses_defeated, duration_ms, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+   )
+      .bind(
+         input.id,
+         input.userId,
+         input.sessionId,
+         input.deckId,
+         input.mode,
+         input.result,
+         input.score,
+         input.bestCombo,
+         input.livesLeft,
+         input.bossesDefeated,
+         input.durationMs,
+         input.createdAt,
+      )
+      .run();
 }
 
 export function getStudySessionRow(
@@ -491,6 +548,38 @@ export async function getReviewActivity(
       .bind(deckId, userId, cutoff)
       .all<{ date: string; count: number }>();
    return (result.results ?? []).map((row) => ({ date: row.date, count: Number(row.count) }));
+}
+
+/**
+ * Per-day accuracy for a deck over the trailing `days` days. Sparse: days with
+ * no reviews are omitted.
+ */
+export async function getReviewAccuracyTrend(
+   env: AppEnv,
+   userId: string,
+   deckId: string,
+   days: number,
+): Promise<Array<{ date: string; total: number; correct: number; accuracy: number }>> {
+   const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
+   const result = await env.DB.prepare(
+      `SELECT substr(r.reviewed_at, 1, 10) AS date,
+              COUNT(*) AS total,
+              COALESCE(SUM(r.is_correct), 0) AS correct
+         FROM cards c
+         CROSS JOIN review_events r
+        WHERE c.deck_id = ? AND c.deleted_at IS NULL
+          AND r.user_id = ? AND r.card_id = c.id
+          AND r.reviewed_at >= ?
+        GROUP BY date
+        ORDER BY date ASC`,
+   )
+      .bind(deckId, userId, cutoff)
+      .all<{ date: string; total: number; correct: number }>();
+   return (result.results ?? []).map((row) => {
+      const total = Number(row.total);
+      const correct = Number(row.correct);
+      return { date: row.date, total, correct, accuracy: total > 0 ? correct / total : 0 };
+   });
 }
 
 /**

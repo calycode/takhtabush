@@ -67,7 +67,10 @@ import {
 import { getDeckStats } from '../../lib/api/stats';
 import { startSession } from '../../lib/api/study';
 import { CardForm, type CardDraft } from '../../components/card-form';
+import { ArcadeLauncher } from '../../components/arcade/arcade-launcher';
+import { CardStateDonut } from '../../components/card-state-donut';
 import { DeckStatsOverview } from '../../components/deck-stats-overview';
+import { DueForecastChart } from '../../components/due-forecast-chart';
 import { ReviewHeatmap } from '../../components/review-heatmap';
 import { StudyLauncher, type StudyConfig } from '../../components/study-launcher';
 
@@ -347,6 +350,13 @@ export function DeckDetail({ id }: { id?: string }) {
             </Alert>
          )}
 
+         {!isEmpty && (
+            <ArcadeLauncher
+               deckId={deck.id}
+               cardCount={deck.cardCount}
+            />
+         )}
+
          {!isEmpty && !statsUnavailable && (
             <div className='flex flex-col gap-3'>
                <div className='flex flex-wrap items-center justify-between gap-2'>
@@ -360,15 +370,43 @@ export function DeckDetail({ id }: { id?: string }) {
                </div>
                <DeckStatsOverview stats={stats} />
                {stats ? (
-                  <Card>
-                     <CardHeader>
-                        <CardTitle>Review activity</CardTitle>
-                        <CardDescription>Reviews per day over the last 16 weeks.</CardDescription>
-                     </CardHeader>
-                     <CardContent>
-                        <ReviewHeatmap points={stats.activity} />
-                     </CardContent>
-                  </Card>
+                  <>
+                     <div className='grid gap-3 lg:grid-cols-2'>
+                        <Card>
+                           <CardHeader>
+                              <CardTitle>Card states</CardTitle>
+                              <CardDescription>
+                                 How the deck splits across the schedule.
+                              </CardDescription>
+                           </CardHeader>
+                           <CardContent>
+                              <CardStateDonut stats={stats} />
+                           </CardContent>
+                        </Card>
+                        <Card>
+                           <CardHeader>
+                              <CardTitle>Due forecast</CardTitle>
+                              <CardDescription>
+                                 Cards coming back over the next 14 days.
+                              </CardDescription>
+                           </CardHeader>
+                           <CardContent>
+                              <DueForecastChart points={stats.dueForecast} />
+                           </CardContent>
+                        </Card>
+                     </div>
+                     <Card>
+                        <CardHeader>
+                           <CardTitle>Review activity</CardTitle>
+                           <CardDescription>
+                              Reviews per day over the last 16 weeks.
+                           </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <ReviewHeatmap points={stats.activity} />
+                        </CardContent>
+                     </Card>
+                  </>
                ) : (
                   <Skeleton className='h-32' />
                )}

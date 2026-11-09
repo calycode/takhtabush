@@ -21,7 +21,10 @@ import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import type { DeckStats } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
 import { getDeckStats } from '../lib/api/stats';
+import { AccuracyTrendChart } from '../components/accuracy-trend-chart';
+import { CardStateDonut } from '../components/card-state-donut';
 import { DeckStatsOverview } from '../components/deck-stats-overview';
+import { DueForecastChart } from '../components/due-forecast-chart';
 import { ReviewHeatmap } from '../components/review-heatmap';
 
 export function StatsView({ deckId }: { deckId?: string }) {
@@ -61,6 +64,38 @@ export function StatsView({ deckId }: { deckId?: string }) {
 
          <DeckStatsOverview stats={stats} />
 
+         <div className='grid gap-4 lg:grid-cols-2'>
+            <Card>
+               <CardHeader>
+                  <CardTitle>Card states</CardTitle>
+                  <CardDescription>How the deck splits across the schedule.</CardDescription>
+               </CardHeader>
+               <CardContent>
+                  <CardStateDonut stats={stats} />
+               </CardContent>
+            </Card>
+
+            <Card>
+               <CardHeader>
+                  <CardTitle>Due forecast</CardTitle>
+                  <CardDescription>Cards coming back over the next 14 days.</CardDescription>
+               </CardHeader>
+               <CardContent>
+                  <DueForecastChart points={stats.dueForecast} />
+               </CardContent>
+            </Card>
+         </div>
+
+         <Card>
+            <CardHeader>
+               <CardTitle>Accuracy trend</CardTitle>
+               <CardDescription>Daily accuracy over the last 16 weeks.</CardDescription>
+            </CardHeader>
+            <CardContent>
+               <AccuracyTrendChart points={stats.accuracyTrend} />
+            </CardContent>
+         </Card>
+
          <Card>
             <CardHeader>
                <CardTitle>Review activity</CardTitle>
@@ -68,35 +103,6 @@ export function StatsView({ deckId }: { deckId?: string }) {
             </CardHeader>
             <CardContent>
                <ReviewHeatmap points={stats.activity} />
-            </CardContent>
-         </Card>
-
-         <Card>
-            <CardHeader>
-               <CardTitle>Current schedule</CardTitle>
-               <CardDescription>When your cards come back around (next 14 days).</CardDescription>
-            </CardHeader>
-            <CardContent>
-               {stats.dueForecast.length === 0 ? (
-                  <p className='text-sm text-muted-foreground'>Nothing scheduled.</p>
-               ) : (
-                  <Table>
-                     <TableHeader>
-                        <TableRow>
-                           <TableHead>Date</TableHead>
-                           <TableHead>Count</TableHead>
-                        </TableRow>
-                     </TableHeader>
-                     <TableBody>
-                        {stats.dueForecast.map((point) => (
-                           <TableRow key={point.date}>
-                              <TableCell>{point.date}</TableCell>
-                              <TableCell>{point.count}</TableCell>
-                           </TableRow>
-                        ))}
-                     </TableBody>
-                  </Table>
-               )}
             </CardContent>
          </Card>
 

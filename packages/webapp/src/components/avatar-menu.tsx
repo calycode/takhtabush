@@ -6,6 +6,7 @@ import {
    ServerIcon,
    SettingsIcon,
    SunIcon,
+   TrophyIcon,
 } from 'lucide-react';
 import { Identicon } from '@caly/ui/components/identicon';
 import {
@@ -72,6 +73,10 @@ export function AvatarMenu() {
             <DropdownMenuSeparator />
 
             <DropdownMenuGroup>
+               <DropdownMenuItem onSelect={() => route('/achievements')}>
+                  <TrophyIcon />
+                  Achievements
+               </DropdownMenuItem>
                <DropdownMenuItem onSelect={() => route('/settings')}>
                   <SettingsIcon />
                   Settings

@@ -21,9 +21,12 @@ import type {
    StudySessionDetail,
 } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
+import { evaluateAchievements } from '../lib/api/achievements';
 import { listAllDeckCards } from '../lib/api/decks';
 import { abandonSession, completeSession, getSession, recordReview } from '../lib/api/study';
+import { announceAchievements } from '../lib/achievements';
 import { MatchingPairs, type PairSignals } from '@caly/ui/study';
+import { ArcadeSession } from '../components/arcade/arcade-session';
 import { StudyCard, interactionFor, toStudyCardData } from '../components/study/card-view';
 
 const MATCHING_PAGE_SIZE = 4;
@@ -79,6 +82,9 @@ export function StudySession({ sessionId }: { sessionId?: string }) {
    const finish = useCallback(async () => {
       await completeSession(id);
       setDone(true);
+      void evaluateAchievements()
+         .then((result) => announceAchievements(result.data.newAchievements))
+         .catch(() => undefined);
    }, [id]);
 
    const grade = useCallback(
@@ -141,6 +147,26 @@ export function StudySession({ sessionId }: { sessionId?: string }) {
    }
 
    if (!session) return <Skeleton className='h-48' />;
+
+   if (session.game) {
+      if (Object.keys(cardsById).length === 0) return <Skeleton className='h-48' />;
+      return (
+         <ArcadeSession
+            session={session}
+            cardsById={cardsById}
+            onGameUpdate={(game) =>
+               setSession((current) => (current ? { ...current, game } : current))
+            }
+            onGameEnd={() => {
+               void evaluateAchievements()
+                  .then((result) => announceAchievements(result.data.newAchievements))
+                  .catch(() => undefined);
+            }}
+            onExit={() => route(`/decks/${session.deckId}`)}
+            onStats={() => route(`/stats/${session.deckId}`)}
+         />
+      );
+   }
 
    const complete = done || (total > 0 && queue.length === 0 && reviewed.size > 0);
    if (complete) {

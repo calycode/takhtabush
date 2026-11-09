@@ -13,7 +13,8 @@ export type IdPrefix =
    | 'mcp'
    | 'tok'
    | 'mag'
-   | 'cur';
+   | 'cur'
+   | 'game';
 
 /** Generate a URL-safe, prefixed identifier, e.g. `deck_1f8a...`. */
 export function newId(prefix: IdPrefix): string {

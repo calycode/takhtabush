@@ -1,10 +1,14 @@
 import {
    DEFAULT_NEW_PER_DAY,
    DEFAULT_REVIEWS_PER_DAY,
+   advanceGameState,
+   createGameState,
    createJourneyPlan,
+   gameCurrentCardId,
    isCorrectResponse,
    newLearningState,
    scheduleReview,
+   type GameState,
    type ReviewEventInput,
    type ReviewResult,
    type StartSessionInput,
@@ -29,6 +33,7 @@ import {
    createStudySession,
    getDeckStudySummary,
    getLearningState,
+   insertGameResult,
    mapLearningState,
    getStudySessionRow,
    listActiveCardIds,
@@ -37,6 +42,7 @@ import {
    listReviewedCardIds,
    listSessionsForUser,
    listWeakCardIds,
+   updateStudySessionGame,
    upsertLearningState,
 } from '../repositories/study';
 import { filterOwnedCardIds } from '../repositories/cards';
@@ -169,6 +175,7 @@ export async function getStudyOptions(
          image_prompt: summary.typeCounts.image_prompt ?? 0,
       },
       availableModes,
+      availableGames: summary.total >= 4 ? ['survival', 'boss'] : [],
    };
 }
 
@@ -179,22 +186,40 @@ export async function startSession(
    createdBy: 'user' | 'mcp' = 'user',
 ): Promise<{ session: StudySession; plan: StudyPlan }> {
    const deck = await getOwnedDeck(env, userId, input.deckId);
-   const { plan } = await buildPlan(env, userId, deck.id, {
+   const baseInput = {
       deckId: deck.id,
       mode: input.mode,
       goal: input.goal,
       minutes: input.minutes,
       cardIds: input.cardIds,
-   });
+   };
+   let { plan } = await buildPlan(env, userId, deck.id, baseInput);
+
+   let game: GameState | undefined;
+   if (input.game) {
+      if (plan.cardIds.length === 0) {
+         const fallback = await buildPlan(env, userId, deck.id, {
+            ...baseInput,
+            mode: 'multiple_choice',
+            goal: 'cram',
+         });
+         plan = fallback.plan;
+      }
+      game = createGameState(input.game, plan.cardIds);
+      if (game.status === 'won') {
+         throw conflict('This deck does not have enough cards to start an arcade session.');
+      }
+   }
 
    const session = await createStudySession(env, {
       id: plan.sessionId,
       userId,
       deckId: deck.id,
-      mode: plan.mode,
+      mode: game ? 'multiple_choice' : plan.mode,
       strategy: plan.strategy,
       plannedCardIds: plan.cardIds,
       createdBy,
+      ...(game ? { game } : {}),
    });
 
    return { session, plan };
@@ -255,6 +280,16 @@ export async function recordReview(
    if (String(row.user_id) !== userId) throw forbidden('You do not own this session');
    if (String(row.status) !== 'active') throw conflict('Study session is not active');
 
+   const gameJson = row.game_state_json as string | null;
+   let game = gameJson ? (JSON.parse(gameJson) as GameState) : null;
+   if (game) {
+      if (game.status !== 'playing') throw conflict('This arcade session is already over');
+      const currentCardId = gameCurrentCardId(game);
+      if (currentCardId && currentCardId !== input.cardId) {
+         throw conflict('That card is not the active arcade card');
+      }
+   }
+
    const card = await getOwnedCard(env, userId, input.cardId);
    const existingRow = await getLearningState(env, userId, card.id);
    const current = existingRow
@@ -273,11 +308,39 @@ export async function recordReview(
       schedulerState: next.state,
    });
 
-   const reviewed = await countReviewedCards(env, sessionId);
-   const planned = JSON.parse(String(row.planned_card_ids_json ?? '[]')) as string[];
-   const remaining = Math.max(0, planned.length - reviewed);
+   let remaining: number;
+   if (game) {
+      game = advanceGameState(game, isCorrectResponse(input.response), input.durationMs);
 
-   return { event, state: next, remaining };
+      await updateStudySessionGame(env, sessionId, game);
+
+      if (game.status !== 'playing') {
+         await completeStudySession(env, sessionId);
+         const startedAt = new Date(String(row.started_at)).getTime();
+         await insertGameResult(env, {
+            id: newId('game'),
+            userId,
+            sessionId,
+            deckId: String(row.deck_id),
+            mode: game.kind,
+            result: game.status,
+            score: game.score,
+            bestCombo: game.bestCombo,
+            livesLeft: game.lives,
+            bossesDefeated: game.bossesDefeated,
+            durationMs: Number.isFinite(startedAt) ? Math.max(0, Date.now() - startedAt) : null,
+            createdAt: new Date().toISOString(),
+         });
+      }
+
+      remaining = game.kind === 'survival' ? game.queue.length : game.bosses.length;
+   } else {
+      const reviewed = await countReviewedCards(env, sessionId);
+      const planned = JSON.parse(String(row.planned_card_ids_json ?? '[]')) as string[];
+      remaining = Math.max(0, planned.length - reviewed);
+   }
+
+   return { event, state: next, remaining, ...(game ? { game } : {}) };
 }
 
 export async function completeSession(
