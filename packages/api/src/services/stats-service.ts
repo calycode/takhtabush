@@ -1,10 +1,11 @@
-import type { DeckStats } from '@caly/shared';
+import type { DeckStats, OverviewStats } from '@caly/shared';
 import { newId } from '@caly/worker-kit';
 import type { AppEnv } from '../env';
 import {
    getDueForecast,
    getReviewActivity,
    getReviewAggregate,
+   getUserReviewActivity,
    getWeakCards,
    listDueCardIds,
 } from '../repositories/study';
@@ -45,6 +46,15 @@ export async function computeDeckStats(
       activity,
       weakCards: weak,
    };
+}
+
+/** Account-level streak and review activity for the dashboard overview. */
+export async function computeOverviewStats(env: AppEnv, userId: string): Promise<OverviewStats> {
+   const [streak, activity] = await Promise.all([
+      getCachedReviewStreak(env, userId),
+      getUserReviewActivity(env, userId, 112),
+   ]);
+   return { streak, activity };
 }
 
 /** Placeholder id generator reused by recommendation previews. */

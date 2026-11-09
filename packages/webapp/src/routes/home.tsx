@@ -11,35 +11,35 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@caly/ui/compo
 import { Skeleton } from '@caly/ui/components/skeleton';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
 import { Badge } from '@caly/ui/components/badge';
-import type { Deck, DeckStats, StudySession } from '@caly/shared';
+import type { Deck, OverviewStats, StudySession } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
 import { listDecks } from '../lib/api/decks';
-import { getDeckStats } from '../lib/api/stats';
+import { getOverviewStats } from '../lib/api/stats';
 import { listSessions } from '../lib/api/study';
 import { DeckLibrary } from '../components/deck-library';
+import { ReviewHeatmap } from '../components/review-heatmap';
 import { StreakFlame } from '../components/streak-flame';
 
 export function Home() {
    const [decks, setDecks] = useState<Deck[]>([]);
    const [sessions, setSessions] = useState<StudySession[]>([]);
-   const [topStats, setTopStats] = useState<DeckStats | null>(null);
+   const [overview, setOverview] = useState<OverviewStats | null>(null);
    const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'auth'>('loading');
    const [error, setError] = useState<string | null>(null);
 
    useEffect(() => {
-      Promise.all([listDecks(), listSessions('active')])
-         .then(async ([deckResult, sessionResult]) => {
+      Promise.all([
+         listDecks(),
+         listSessions('active'),
+         getOverviewStats()
+            .then((result) => result.data)
+            .catch(() => null),
+      ])
+         .then(([deckResult, sessionResult, overviewResult]) => {
             setDecks(deckResult.data);
             setSessions(sessionResult.data);
+            setOverview(overviewResult);
             setStatus('ready');
-            const top = deckResult.data[0];
-            if (top) {
-               setTopStats(
-                  await getDeckStats(top.id)
-                     .then((r) => r.data)
-                     .catch(() => null),
-               );
-            }
          })
          .catch((cause) => {
             if (cause instanceof ApiError && cause.status === 401) {
@@ -64,7 +64,7 @@ export function Home() {
                   Your decks, cards, and study sessions on one Worker.
                </p>
             </div>
-            {topStats && <StreakFlame days={topStats.streak} />}
+            {overview && <StreakFlame days={overview.streak} />}
          </div>
 
          {status === 'auth' && (
@@ -104,6 +104,24 @@ export function Home() {
                loading={status === 'loading'}
             />
          </div>
+
+         {(status === 'loading' || overview) && (
+            <Card>
+               <CardHeader>
+                  <CardTitle>Review activity</CardTitle>
+                  <CardDescription>
+                     Reviews per day across all your sets over the last 16 weeks.
+                  </CardDescription>
+               </CardHeader>
+               <CardContent>
+                  {overview ? (
+                     <ReviewHeatmap points={overview.activity} />
+                  ) : (
+                     <Skeleton className='h-24' />
+                  )}
+               </CardContent>
+            </Card>
+         )}
 
          {sessions.length > 0 && (
             <Card>
@@ -161,14 +179,6 @@ export function Home() {
                   </Empty>
                ) : (
                   <div className='flex flex-col gap-3'>
-                     {topStats && topStats.weakCards.length > 0 && (
-                        <Alert variant='info'>
-                           <AlertDescription>
-                              {topStats.weakCards.length} tricky card(s) in “{latest.title}” are
-                              worth another look.
-                           </AlertDescription>
-                        </Alert>
-                     )}
                      <div className='flex flex-wrap gap-2'>
                         <a
                            href={`/decks/${latest.id}`}

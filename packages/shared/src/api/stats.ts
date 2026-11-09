@@ -17,6 +17,15 @@ export const weakCardSchema = z.object({
 
 export type WeakCard = z.infer<typeof weakCardSchema>;
 
+/** Account-level summary used by the dashboard overview. */
+export const overviewStatsSchema = z.object({
+   streak: z.number().int().nonnegative(),
+   /** Past review counts per day across all decks (sparse). */
+   activity: z.array(dueForecastPointSchema),
+});
+
+export type OverviewStats = z.infer<typeof overviewStatsSchema>;
+
 export const deckStatsSchema = z.object({
    deckId: idSchema,
    totalCards: z.number().int().nonnegative(),

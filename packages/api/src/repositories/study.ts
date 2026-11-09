@@ -493,6 +493,28 @@ export async function getReviewActivity(
    return (result.results ?? []).map((row) => ({ date: row.date, count: Number(row.count) }));
 }
 
+/**
+ * Review counts per day (UTC) across every deck the user owns over the trailing
+ * `days` days. Sparse: days with no reviews are omitted.
+ */
+export async function getUserReviewActivity(
+   env: AppEnv,
+   userId: string,
+   days: number,
+): Promise<Array<{ date: string; count: number }>> {
+   const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
+   const result = await env.DB.prepare(
+      `SELECT substr(reviewed_at, 1, 10) AS date, COUNT(*) AS count
+         FROM review_events
+        WHERE user_id = ? AND reviewed_at >= ?
+        GROUP BY date
+        ORDER BY date ASC`,
+   )
+      .bind(userId, cutoff)
+      .all<{ date: string; count: number }>();
+   return (result.results ?? []).map((row) => ({ date: row.date, count: Number(row.count) }));
+}
+
 export async function getWeakCards(
    env: AppEnv,
    userId: string,

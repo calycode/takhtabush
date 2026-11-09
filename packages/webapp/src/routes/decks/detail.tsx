@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'preact-iso';
 import { Button, buttonVariants } from '@caly/ui/components/button';
 import { Input } from '@caly/ui/components/input';
-import { Card, CardContent, CardHeader } from '@caly/ui/components/card';
+import {
+   Card,
+   CardContent,
+   CardDescription,
+   CardHeader,
+   CardTitle,
+} from '@caly/ui/components/card';
 import {
    Dialog,
    DialogContent,
@@ -62,6 +68,7 @@ import { getDeckStats } from '../../lib/api/stats';
 import { startSession } from '../../lib/api/study';
 import { CardForm, type CardDraft } from '../../components/card-form';
 import { DeckStatsOverview } from '../../components/deck-stats-overview';
+import { ReviewHeatmap } from '../../components/review-heatmap';
 import { StudyLauncher, type StudyConfig } from '../../components/study-launcher';
 
 function answerPreview(card: CardType): string {
@@ -352,6 +359,19 @@ export function DeckDetail({ id }: { id?: string }) {
                   </a>
                </div>
                <DeckStatsOverview stats={stats} />
+               {stats ? (
+                  <Card>
+                     <CardHeader>
+                        <CardTitle>Review activity</CardTitle>
+                        <CardDescription>Reviews per day over the last 16 weeks.</CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                        <ReviewHeatmap points={stats.activity} />
+                     </CardContent>
+                  </Card>
+               ) : (
+                  <Skeleton className='h-32' />
+               )}
             </div>
          )}
 
