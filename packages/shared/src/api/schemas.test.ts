@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { verifyLoginCodeInputSchema } from './auth';
 import { createCardInputSchema } from './cards';
 import { cursorQuerySchema } from './common';
 import { mcpGetStudyPlanInputSchema } from './mcp';
@@ -22,6 +23,18 @@ describe('shared contracts', () => {
    it('defaults pagination to 20 and caps at 50', () => {
       expect(cursorQuerySchema.parse({}).limit).toBe(20);
       expect(cursorQuerySchema.safeParse({ limit: 51 }).success).toBe(false);
+   });
+
+   it('accepts only a six-digit sign-in code', () => {
+      expect(verifyLoginCodeInputSchema.parse({ email: 'a@b.com', code: ' 123456 ' }).code).toBe(
+         '123456',
+      );
+      expect(
+         verifyLoginCodeInputSchema.safeParse({ email: 'a@b.com', code: '12345' }).success,
+      ).toBe(false);
+      expect(
+         verifyLoginCodeInputSchema.safeParse({ email: 'a@b.com', code: 'abcdef' }).success,
+      ).toBe(false);
    });
 
    it('lets MCP study plans choose a mode and the cram goal', () => {

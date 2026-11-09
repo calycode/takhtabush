@@ -6,14 +6,19 @@ the private advisory link in [`SECURITY.md`](../../SECURITY.md), not a public is
 
 ## Authentication
 
-- Sign-in is an email magic link. The token is stored only as a hash and expires
-  after 15 minutes.
+- Sign-in is email-based: the email carries a magic link and a six-digit code.
+  Both are single-use, expire after 15 minutes, and consume the same
+  `magic_link_tokens` row, so one cannot be replayed after the other succeeds.
+- The link token and the code are stored only as hashes. The code hash is bound
+  to the normalized email and `SESSION_SECRET`, so a code is useless without
+  the address it was sent to.
 - A successful sign-in creates an HTTP-only `sid` session cookie with
   `SameSite=Lax` and `Secure` when the request is HTTPS.
 - Browser mutations use a double-submit CSRF token: a readable `csrf` cookie
   plus the `x-csrf-token` header. Bearer requests are exempt.
 - Sessions are first-class: list them, revoke one, or revoke all from settings.
-- Auth routes are rate limited in D1 with a `Retry-After` response.
+- Auth routes are rate limited in D1 with a `Retry-After` response. Code
+  verification is limited per IP and per email.
 
 ## Single tenancy
 
@@ -28,8 +33,8 @@ The default is one tenant. The first account to sign in becomes the owner.
 | `SETUP_TOKEN`        | Enables `/setup` to create or recover the owner without email  |
 
 Existing accounts keep working unless `OWNER_EMAIL` pins a different owner.
-The gate is applied when a magic link is requested and again when it is
-verified.
+The gate is applied when a sign-in email is requested and again when the link
+or code is verified.
 
 This release is not a multi-tenant product. Content is owned by a user, and
 study progress is stored per `(user_id, card_id)`. A future shared workspace

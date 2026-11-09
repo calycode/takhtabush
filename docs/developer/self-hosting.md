@@ -149,7 +149,7 @@ Secrets:
 
 - `SESSION_SECRET` — required.
 - `SETUP_TOKEN` — required for `/setup` and owner recovery.
-- `OWNER_INVITE_TOKEN` — optional extra magic-link gate.
+- `OWNER_INVITE_TOKEN` - optional extra sign-in gate.
 - `AI_GATEWAY_TOKEN` — optional.
 
 `.dev.vars.example` is the Appflare/Cloudflare install form’s secret list. It is
@@ -174,15 +174,15 @@ It is rate limited per IP and disabled when `SETUP_TOKEN` is unset.
 
 - The first user becomes `is_owner`.
 - `migrations/0007_single_owner.sql` allows at most one owner row.
-- After initialization, only the owner can request a magic link unless the
+- After initialization, only the owner can request a sign-in email unless the
   address is in `ALLOWED_EMAILS`.
 - `OWNER_EMAIL`, when set, is the only address allowed to own or recover the
   deployment.
 
 ## Email
 
-Cloudflare Email Service needs an onboarded sender domain before magic links can
-be delivered. Until then, `/setup` and `/setup` recovery work without email.
+Cloudflare Email Service needs an onboarded sender domain before sign-in emails
+can be delivered. Until then, `/setup` and `/setup` recovery work without email.
 After onboarding a domain, set `EMAIL_FROM` in the app settings and redeploy or
 save the settings.
 

@@ -3,8 +3,13 @@ import type { User } from '@caly/shared';
 import type { AppEnv } from '../env';
 import { AppError, forbidden } from '../lib/errors';
 import { hashToken, randomToken, sha256Hex, timingSafeEqual } from '../lib/crypto';
-import { sendMagicLink } from './email-service';
-import { consumeMagicLink, createMagicLink, findValidMagicLink } from '../repositories/magic-links';
+import { sendSignInEmail } from './email-service';
+import {
+   consumeLoginCode,
+   consumeMagicLink,
+   createMagicLink,
+   findValidMagicLink,
+} from '../repositories/magic-links';
 import {
    createSession,
    listActiveSessions,
@@ -24,18 +29,40 @@ import { isEmailAllowed, normalizeEmail } from './tenancy';
 
 export const MAGIC_LINK_TTL_MINUTES = 15;
 export const SESSION_TTL_DAYS = 30;
+export const LOGIN_CODE_DIGITS = 6;
 
-export type RequestMagicLinkResult = { sent: true; devToken?: string };
+const LOGIN_CODE_SPACE = 10 ** LOGIN_CODE_DIGITS;
+
+export type RequestMagicLinkResult = {
+   sent: true;
+   devToken?: string;
+   devCode?: string;
+};
 
 /** Dev tokens are never exposed in production (SPEC §3.2). */
 export function shouldExposeDevToken(env: AppEnv): boolean {
    return env.ENVIRONMENT !== 'production';
 }
 
+export function generateLoginCode(): string {
+   const values = new Uint32Array(1);
+   crypto.getRandomValues(values);
+   return String((values[0] ?? 0) % LOGIN_CODE_SPACE).padStart(LOGIN_CODE_DIGITS, '0');
+}
+
 /**
- * Request a sign-in link. In production a working `EMAIL` binding is required;
- * in development the raw token is returned (and logged) so sign-in works
- * without an email provider.
+ * Six digits have little entropy on their own, so the hash is bound to the
+ * email it was sent to and the deployment secret. Only the hash is stored.
+ */
+function loginCodeHash(env: AppEnv, email: string, code: string): Promise<string> {
+   return sha256Hex(`${env.SESSION_SECRET}:login-code:${normalizeEmail(email)}:${code}`);
+}
+
+/**
+ * Request a sign-in email carrying both a magic link and a six-digit code. In
+ * production a working `EMAIL` binding is required; in development the raw
+ * token and code are returned (and logged) so sign-in works without an email
+ * provider.
  */
 export async function requestMagicLink(
    env: AppEnv,
@@ -50,14 +77,17 @@ export async function requestMagicLink(
       }
    }
 
-   if (!(await isEmailAllowed(env, email))) {
+   const normalizedEmail = normalizeEmail(email);
+   if (!(await isEmailAllowed(env, normalizedEmail))) {
       throw forbidden('This deployment only allows the owner account');
    }
 
    const token = randomToken(32);
    const tokenHash = await hashToken(env.SESSION_SECRET, token);
+   const code = generateLoginCode();
+   const codeHash = await loginCodeHash(env, normalizedEmail, code);
    const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_MINUTES * 60_000).toISOString();
-   await createMagicLink(env, { email, tokenHash, expiresAt });
+   await createMagicLink(env, { email: normalizedEmail, tokenHash, codeHash, expiresAt });
 
    // APP_URL is optional for repository installs; the request origin is the
    // correct fallback until a custom domain is pinned.
@@ -69,7 +99,7 @@ export async function requestMagicLink(
    const link = `${baseUrl}/login?token=${encodeURIComponent(token)}${
       nextPath ? `&next=${encodeURIComponent(nextPath)}` : ''
    }`;
-   const delivery = await sendMagicLink(env, email, link);
+   const delivery = await sendSignInEmail(env, normalizedEmail, link, code);
 
    if (!shouldExposeDevToken(env)) {
       if (!delivery.delivered) {
@@ -82,8 +112,8 @@ export async function requestMagicLink(
       return { sent: true };
    }
 
-   // Development: always surface the token so sign-in works without a mailbox.
-   return { sent: true, devToken: token };
+   // Development: always surface the token and code so sign-in works without a mailbox.
+   return { sent: true, devToken: token, devCode: code };
 }
 
 export type VerifyResult = {
@@ -121,23 +151,50 @@ export async function verifyMagicLink(
    const tokenHash = await hashToken(env.SESSION_SECRET, token);
    const link = await findValidMagicLink(env, tokenHash);
    if (!link) throw new AppError('INVALID_TOKEN', 'Magic link is invalid or expired', 401);
-   await consumeMagicLink(env, link.id);
+   if (!(await consumeMagicLink(env, link.id))) {
+      throw new AppError('INVALID_TOKEN', 'Magic link is invalid or expired', 401);
+   }
 
    if (!(await isEmailAllowed(env, link.email))) {
       throw forbidden('This deployment only allows the owner account');
    }
 
-   let userRow: UserRow | null = await getUserByEmail(env, link.email);
-   if (!userRow) {
-      const existing = await countUsers(env);
-      userRow = await insertUser(env, {
-         email: link.email,
-         displayName: link.email.split('@')[0] ?? 'Learner',
-         isOwner: existing === 0,
-      });
+   return createSessionForUser(env, await resolveUserRow(env, link.email), meta);
+}
+
+/** Sign in with the six-digit code from the same email as the magic link. */
+export async function verifyLoginCode(
+   env: AppEnv,
+   email: string,
+   code: string,
+   meta: { userAgent?: string; ip?: string },
+): Promise<VerifyResult> {
+   const normalizedEmail = normalizeEmail(email);
+   if (!(await isEmailAllowed(env, normalizedEmail))) {
+      throw forbidden('This deployment only allows the owner account');
    }
 
-   return createSessionForUser(env, userRow, meta);
+   const codeHash = await loginCodeHash(env, normalizedEmail, code);
+
+   // Claim every row carrying this code so one code cannot sign in twice. An
+   // expired or already-consumed code claims nothing.
+   if (!(await consumeLoginCode(env, normalizedEmail, codeHash))) {
+      throw new AppError('INVALID_CODE', 'Sign-in code is invalid or expired', 401);
+   }
+
+   return createSessionForUser(env, await resolveUserRow(env, normalizedEmail), meta);
+}
+
+async function resolveUserRow(env: AppEnv, email: string): Promise<UserRow> {
+   const existing = await getUserByEmail(env, email);
+   if (existing) return existing;
+
+   const users = await countUsers(env);
+   return insertUser(env, {
+      email,
+      displayName: email.split('@')[0] ?? 'Learner',
+      isOwner: users === 0,
+   });
 }
 
 /**

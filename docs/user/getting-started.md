@@ -4,12 +4,13 @@
 
 1. Open the app URL.
 2. Enter your email address.
-3. Open the sign-in link you receive. It expires after 15 minutes.
+3. Open the sign-in link you receive, or type the six-digit code from the same
+   email. Both expire after 15 minutes.
 
 If your instance does not send email yet, the operator can create the owner
 account from `/setup`; ask them for the setup token. In local development the
-sign-in screen may show an **Open sign-in link** shortcut instead of sending
-mail.
+sign-in screen shows a **dev code** and an **Open sign-in link** shortcut
+instead of sending mail.
 
 ## Your dashboard
 

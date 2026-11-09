@@ -16,16 +16,26 @@ export function requestMagicLink(email: string, invite?: string, next?: string) 
    const body: { email: string; invite?: string; next?: string } = { email };
    if (invite) body.invite = invite;
    if (next) body.next = next;
-   return apiFetch<ApiSuccess<{ sent: true; devToken?: string }>>('/auth/magic-link', {
-      method: 'POST',
-      body: JSON.stringify(body),
-   });
+   return apiFetch<ApiSuccess<{ sent: true; devToken?: string; devCode?: string }>>(
+      '/auth/magic-link',
+      {
+         method: 'POST',
+         body: JSON.stringify(body),
+      },
+   );
 }
 
 export function verifyMagicLink(token: string) {
    return apiFetch<ApiSuccess<{ user: User }>>('/auth/verify', {
       method: 'POST',
       body: JSON.stringify({ token }),
+   });
+}
+
+export function verifyLoginCode(email: string, code: string) {
+   return apiFetch<ApiSuccess<{ user: User }>>('/auth/verify-code', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
    });
 }
 

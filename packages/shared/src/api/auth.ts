@@ -26,6 +26,19 @@ export const verifyMagicLinkInputSchema = z.object({
 
 export type VerifyMagicLinkInput = z.infer<typeof verifyMagicLinkInputSchema>;
 
+/** The six-digit code in the same email as the magic link. */
+export const loginCodeSchema = z
+   .string()
+   .trim()
+   .regex(/^\d{6}$/, 'Enter the 6-digit code from the email');
+
+export const verifyLoginCodeInputSchema = z.object({
+   email: z.email().max(320),
+   code: loginCodeSchema,
+});
+
+export type VerifyLoginCodeInput = z.infer<typeof verifyLoginCodeInputSchema>;
+
 /** First-run setup creates the owner account without email delivery. */
 export const setupOwnerInputSchema = z.object({
    email: z.email().max(320),

@@ -2,8 +2,14 @@
 
 ## Sign in
 
-Takhtabush uses email magic links. Enter your address, open the link, and you
-are signed in. The link expires after 15 minutes and can be used once.
+Takhtabush uses email sign-in. Enter your address and we send a six-digit code
+and a magic link in the same email. You can either open the link or type the
+code on the sign-in page. Both expire after 15 minutes and either one can be
+used once.
+
+The code is useful when the link cannot open where you are signing in. The
+browser extension, for example, opens its own sign-in window: request the code,
+then type it there after reading the email on another device.
 
 ## Sessions
 

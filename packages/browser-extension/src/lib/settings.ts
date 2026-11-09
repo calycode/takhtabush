@@ -38,7 +38,7 @@ export function mountSettings(root: HTMLElement): void {
                <label for="instance-url">Takhtabush URL</label>
                <input id="instance-url" type="text" inputmode="url" autocomplete="url" placeholder="https://cards.example.com" spellcheck="false" />
                <p class="tk-hint">You will sign in with your normal Takhtabush account in the next step.</p>
-               <p class="tk-hint">If the sign-in window stalls, sign in on your Takhtabush instance in a normal tab, then try again.</p>
+               <p class="tk-hint">The sign-in window does not share your normal browser session. Request a 6-digit code and enter it there, or open the link in the same window.</p>
                <button id="connect-button" class="tk-button tk-button-primary" type="submit" data-idle-label="Connect Takhtabush">Connect Takhtabush</button>
             </form>
             <div id="status" class="tk-status" role="status" hidden></div>

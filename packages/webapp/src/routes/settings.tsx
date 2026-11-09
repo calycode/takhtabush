@@ -50,6 +50,7 @@ export function Settings() {
    const [sessions, setSessions] = useState<SessionInfo[]>([]);
    const [status, setStatus] = useState<string | null>(null);
    const [devToken, setDevToken] = useState<string | null>(null);
+   const [devCode, setDevCode] = useState<string | null>(null);
    const [error, setError] = useState<string | null>(null);
 
    const loadSessions = useCallback(async () => {
@@ -80,13 +81,16 @@ export function Settings() {
    async function resend() {
       if (!user?.email) return;
       setError(null);
+      setDevToken(null);
+      setDevCode(null);
       const result = await requestMagicLink(user.email, invite || undefined).catch(() => null);
       if (!result) {
          setError('Could not send a sign-in link.');
          return;
       }
       if (result.data.devToken) setDevToken(result.data.devToken);
-      setStatus('Sign-in link sent.');
+      if (result.data.devCode) setDevCode(result.data.devCode);
+      setStatus('Sign-in email sent.');
    }
 
    return (
@@ -130,6 +134,7 @@ export function Settings() {
                         <Alert variant='info'>
                            <AlertDescription className='break-all'>
                               {status}
+                              {devCode ? ` Dev code: ${devCode}` : ''}
                               {devToken ? ` Dev token: ${devToken}` : ''}
                            </AlertDescription>
                         </Alert>

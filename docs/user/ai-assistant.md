@@ -36,7 +36,7 @@ For a client that accepts a URL and a header:
 ```
 
 For ChatGPT's web connector, choose **OAuth** instead of an API key. Sign in
-with the same magic link and approve the scopes.
+with the same emailed link or code and approve the scopes.
 
 ## What the assistant can do
 

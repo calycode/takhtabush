@@ -139,8 +139,10 @@ Failure:
 
 ## Notes
 
-- \`POST /api/v1/auth/magic-link\` returns the raw token only when
-  \`ENVIRONMENT=development\`.
+- \`POST /api/v1/auth/magic-link\` returns the raw token and six-digit code only
+  when \`ENVIRONMENT=development\`.
+- \`POST /api/v1/auth/verify-code\` exchanges \`{ email, code }\` for a session;
+  the code and the magic link consume the same single-use row.
 - \`/mcp\` is a Streamable HTTP endpoint, not a JSON REST route. It accepts API
   keys, session cookies, and OAuth bearers.
 - \`/media/:id\` is the authenticated R2 read proxy.

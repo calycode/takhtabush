@@ -18,6 +18,7 @@ class FakeD1 {
 
 class FakeStatement {
    private params: unknown[] = [];
+   private changes = 0;
 
    constructor(
       private readonly db: FakeD1,
@@ -40,23 +41,26 @@ class FakeStatement {
 
    async run() {
       this.exec();
-      return { meta: { changes: 1 } };
+      return { meta: { changes: this.changes } };
    }
 
    private exec(): Row[] {
       const sql = this.sql;
       const p = this.params;
       const db = this.db;
+      this.changes = 0;
 
       if (sql.includes('INSERT INTO magic_link_tokens')) {
          db.magic.push({
             id: p[0],
             email: p[1],
             token_hash: p[2],
-            created_at: p[3],
-            expires_at: p[4],
+            code_hash: p[3],
+            created_at: p[4],
+            expires_at: p[5],
             consumed_at: null,
          });
+         this.changes = 1;
          return [];
       }
       if (sql.includes('FROM magic_link_tokens')) {
@@ -66,9 +70,25 @@ class FakeStatement {
          );
       }
       if (sql.startsWith('UPDATE magic_link_tokens')) {
+         if (sql.includes('code_hash')) {
+            const [consumedAt, email, codeHash, now] = p as [string, string, string, string];
+            const rows = db.magic.filter(
+               (m) =>
+                  m.email === email &&
+                  m.code_hash === codeHash &&
+                  !m.consumed_at &&
+                  String(m.expires_at) > now,
+            );
+            for (const row of rows) row.consumed_at = consumedAt;
+            this.changes = rows.length;
+            return [];
+         }
          const [consumedAt, id] = p as [string, string];
          const row = db.magic.find((m) => m.id === id);
-         if (row) row.consumed_at = consumedAt;
+         if (row && !row.consumed_at) {
+            row.consumed_at = consumedAt;
+            this.changes = 1;
+         }
          return [];
       }
 
@@ -127,14 +147,22 @@ class FakeStatement {
       if (sql.startsWith('UPDATE sessions')) {
          if (sql.includes('id !=')) {
             const [at, userId, keepId] = p as [string, string, string];
+            let revoked = 0;
             for (const s of db.sessions) {
-               if (s.user_id === userId && s.id !== keepId && !s.revoked_at) s.revoked_at = at;
+               if (s.user_id === userId && s.id !== keepId && !s.revoked_at) {
+                  s.revoked_at = at;
+                  revoked++;
+               }
             }
+            this.changes = revoked;
             return [];
          }
          const [at, id, userId] = p as [string, string, string | undefined];
          const row = db.sessions.find((s) => s.id === id && (!userId || s.user_id === userId));
-         if (row) row.revoked_at = at;
+         if (row && !row.revoked_at) {
+            row.revoked_at = at;
+            this.changes = 1;
+         }
          return [];
       }
 
@@ -308,11 +336,11 @@ describe('magic-link auth flow', () => {
    });
 
    it('sends through the EMAIL binding in production without a dev token', async () => {
-      const sent: Array<{ to: unknown }> = [];
+      const sent: Array<{ to: unknown; text?: string }> = [];
       const env = stubEnv({
          ENVIRONMENT: 'production',
          EMAIL: {
-            send: async (message: { to: unknown }) => {
+            send: async (message: { to: unknown; text?: string }) => {
                sent.push(message);
                return { messageId: 'msg_1' };
             },
@@ -320,9 +348,11 @@ describe('magic-link auth flow', () => {
       });
       const res = await post('/api/v1/auth/magic-link', { email: 'a@b.com' }, env);
       expect(res.status).toBe(202);
-      const body = (await res.json()) as { data: { devToken?: string } };
+      const body = (await res.json()) as { data: { devToken?: string; devCode?: string } };
       expect(body.data.devToken).toBeUndefined();
+      expect(body.data.devCode).toBeUndefined();
       expect(sent).toHaveLength(1);
+      expect(sent[0]?.text).toMatch(/sign-in code: \d{6}/);
    });
 
    it('lists sessions and signs out the others', async () => {
@@ -408,6 +438,127 @@ describe('magic-link auth flow', () => {
          (await post('/api/v1/auth/magic-link', { email: 'a@b.com', invite: 'letmein' }, env))
             .status,
       ).toBe(202);
+   });
+});
+
+type LinkResult = { data: { sent: true; devToken?: string; devCode?: string } };
+
+describe('email sign-in code', () => {
+   it('requests a code and signs in with it', async () => {
+      const env = stubEnv();
+      const linkRes = await post('/api/v1/auth/magic-link', { email: 'Owner@Example.com' }, env);
+      expect(linkRes.status).toBe(202);
+      const { data } = (await linkRes.json()) as LinkResult;
+      expect(data.devCode).toMatch(/^\d{6}$/);
+      expect(data.devToken).toBeTruthy();
+
+      const verifyRes = await post(
+         '/api/v1/auth/verify-code',
+         { email: 'owner@example.com', code: data.devCode },
+         env,
+      );
+      expect(verifyRes.status).toBe(200);
+
+      const meRes = await app.request(
+         '/api/v1/me',
+         { headers: { cookie: `sid=${sidFrom(verifyRes)}` } },
+         env,
+      );
+      const me = (await meRes.json()) as { data: { user: { email: string; isOwner: boolean } } };
+      expect(me.data.user.email).toBe('owner@example.com');
+      expect(me.data.user.isOwner).toBe(true);
+   });
+
+   it('accepts a code only once', async () => {
+      const env = stubEnv();
+      const linkRes = await post('/api/v1/auth/magic-link', { email: 'a@b.com' }, env);
+      const code = ((await linkRes.json()) as LinkResult).data.devCode;
+
+      expect((await post('/api/v1/auth/verify-code', { email: 'a@b.com', code }, env)).status).toBe(
+         200,
+      );
+      expect((await post('/api/v1/auth/verify-code', { email: 'a@b.com', code }, env)).status).toBe(
+         401,
+      );
+   });
+
+   it('rejects a wrong or expired code', async () => {
+      const env = stubEnv();
+      const linkRes = await post('/api/v1/auth/magic-link', { email: 'a@b.com' }, env);
+      const code = ((await linkRes.json()) as LinkResult).data.devCode;
+
+      expect(
+         (await post('/api/v1/auth/verify-code', { email: 'a@b.com', code: '000000' }, env)).status,
+      ).toBe(401);
+
+      const db = env.DB as unknown as FakeD1;
+      db.magic[0]!.expires_at = new Date(Date.now() - 1000).toISOString();
+
+      expect((await post('/api/v1/auth/verify-code', { email: 'a@b.com', code }, env)).status).toBe(
+         401,
+      );
+   });
+
+   it('shares one single-use row between the code and the magic link', async () => {
+      const first = stubEnv();
+      const firstLink = (await (
+         await post('/api/v1/auth/magic-link', { email: 'a@b.com' }, first)
+      ).json()) as LinkResult;
+
+      expect(
+         (
+            await post(
+               '/api/v1/auth/verify-code',
+               { email: 'a@b.com', code: firstLink.data.devCode },
+               first,
+            )
+         ).status,
+      ).toBe(200);
+      expect(
+         (await post('/api/v1/auth/verify', { token: firstLink.data.devToken }, first)).status,
+      ).toBe(401);
+
+      const second = stubEnv();
+      const secondLink = (await (
+         await post('/api/v1/auth/magic-link', { email: 'a@b.com' }, second)
+      ).json()) as LinkResult;
+
+      expect(
+         (await post('/api/v1/auth/verify', { token: secondLink.data.devToken }, second)).status,
+      ).toBe(200);
+      expect(
+         (
+            await post(
+               '/api/v1/auth/verify-code',
+               { email: 'a@b.com', code: secondLink.data.devCode },
+               second,
+            )
+         ).status,
+      ).toBe(401);
+   });
+
+   it('rate limits code attempts by email', async () => {
+      const env = stubEnv();
+      for (let i = 0; i < 10; i++) {
+         expect(
+            (
+               await post(
+                  '/api/v1/auth/verify-code',
+                  { email: 'spam@example.com', code: '000000' },
+                  env,
+               )
+            ).status,
+         ).toBe(401);
+      }
+      expect(
+         (
+            await post(
+               '/api/v1/auth/verify-code',
+               { email: 'spam@example.com', code: '000000' },
+               env,
+            )
+         ).status,
+      ).toBe(429);
    });
 });
 

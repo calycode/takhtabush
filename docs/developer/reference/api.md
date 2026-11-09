@@ -17,6 +17,7 @@ also require the `x-csrf-token` header.
 | `POST`   | `/api/v1/auth/setup`                  | Public                     |
 | `GET`    | `/api/v1/auth/status`                 | Public                     |
 | `POST`   | `/api/v1/auth/verify`                 | Public                     |
+| `POST`   | `/api/v1/auth/verify-code`            | Public                     |
 | `DELETE` | `/api/v1/cards/:id`                   | Session or bearer          |
 | `GET`    | `/api/v1/cards/:id`                   | Session or bearer          |
 | `PATCH`  | `/api/v1/cards/:id`                   | Session or bearer          |
@@ -49,6 +50,7 @@ also require the `x-csrf-token` header.
 | `GET`    | `/api/v1/sessions`                    | Session or bearer          |
 | `DELETE` | `/api/v1/sessions/:id`                | Session or bearer          |
 | `GET`    | `/api/v1/stats/decks/:id`             | Session or bearer          |
+| `GET`    | `/api/v1/stats/overview`              | Session or bearer          |
 | `POST`   | `/api/v1/study/preview`               | Session or bearer          |
 | `GET`    | `/api/v1/study/recommendation`        | Session or bearer          |
 | `GET`    | `/api/v1/study/sessions`              | Session or bearer          |
@@ -81,8 +83,10 @@ Failure:
 
 ## Notes
 
-- `POST /api/v1/auth/magic-link` returns the raw token only when
-  `ENVIRONMENT=development`.
+- `POST /api/v1/auth/magic-link` returns the raw token and six-digit code only
+  when `ENVIRONMENT=development`.
+- `POST /api/v1/auth/verify-code` exchanges `{ email, code }` for a session;
+  the code and the magic link consume the same single-use row.
 - `/mcp` is a Streamable HTTP endpoint, not a JSON REST route. It accepts API
   keys, session cookies, and OAuth bearers.
 - `/media/:id` is the authenticated R2 read proxy.

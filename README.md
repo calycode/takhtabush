@@ -86,18 +86,22 @@ Deployment routes:
 
 ## Authentication
 
-Sign-in is a session-based email magic link (`POST /api/v1/auth/magic-link`
-then `/api/v1/auth/verify`), backed by secure HTTP-only cookies plus a
-double-submit CSRF cookie for browser mutations.
+Sign-in is a session-based email sign-in flow: the email carries a magic link
+and a six-digit code. The link is exchanged at `POST /api/v1/auth/verify`, the
+code at `POST /api/v1/auth/verify-code`, and both are backed by secure HTTP-only
+cookies plus a double-submit CSRF cookie for browser mutations. Either one
+consumes the same single-use row, so the code works even when the sign-in
+window cannot open the link (for example the browser extension's auth window).
 
 - Email is delivered through the **Cloudflare Email Service** `EMAIL` binding
   (`send_email` in `wrangler.jsonc`). `wrangler dev` simulates delivery and logs
   the message; a deployed Worker sends from `EMAIL_FROM` (an onboarded domain).
 - **Local development** (`wrangler.dev.jsonc`, `ENVIRONMENT=development`): the
-  API also returns the raw magic-link token, so sign-in works with no mailbox.
-  The login screen surfaces an "Open sign-in link" shortcut.
-- **Production** (`wrangler.jsonc`, `ENVIRONMENT=production`): the raw token is
-  never returned and a successful `EMAIL` send is required (`502` otherwise).
+  API also returns the raw magic-link token and code, so sign-in works with no
+  mailbox. The login screen surfaces them directly.
+- **Production** (`wrangler.jsonc`, `ENVIRONMENT=production`): the raw token and
+  code are never returned and a successful `EMAIL` send is required (`502`
+  otherwise).
 - **Single-user gate** (optional): set `OWNER_INVITE_TOKEN`; every sign-in
   request must then include a matching `invite` value.
 - **Single tenancy** (default): the first user becomes the owner. After that,
@@ -136,7 +140,7 @@ accepted as an alias.
 2. Set the server URL to `https://<app>/mcp`.
 3. Choose **OAuth** and leave the client ID/secret blank. ChatGPT uses CIMD;
    `/oauth/register` is available as a DCR fallback.
-4. Sign in with the existing magic-link flow and approve the scopes on the
+4. Sign in with the existing emailed link or code and approve the scopes on the
    consent page.
 
 ChatGPT issues its own tokens through `@cloudflare/workers-oauth-provider`, and
@@ -148,7 +152,7 @@ scripts.
 Use the canonical public HTTPS origin when adding the connector: the OAuth
 issuer and token audience follow the request origin, so connecting through a
 different hostname creates a separate audience. `APP_URL` still controls the
-host used in magic-link emails. OAuth consent uses `__Host-` cookies, so test
+host used in sign-in emails. OAuth consent uses `__Host-` cookies, so test
 the full flow over HTTPS (`wrangler dev --local-protocol https` or a tunnel)
 rather than plain HTTP.
 

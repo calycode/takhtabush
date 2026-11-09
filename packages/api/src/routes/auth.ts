@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import {
    requestMagicLinkInputSchema,
    setupOwnerInputSchema,
+   verifyLoginCodeInputSchema,
    verifyMagicLinkInputSchema,
 } from '@caly/shared';
 import { ok } from '@caly/worker-kit';
@@ -14,7 +15,13 @@ import {
    setCsrfCookie,
    setSessionCookie,
 } from '../middleware/auth';
-import { logout, requestMagicLink, setupOwner, verifyMagicLink } from '../services/auth-service';
+import {
+   logout,
+   requestMagicLink,
+   setupOwner,
+   verifyLoginCode,
+   verifyMagicLink,
+} from '../services/auth-service';
 import { getAuthStatus } from '../services/tenancy';
 
 export const authRoutes = new Hono<AppBindings>()
@@ -47,6 +54,18 @@ export const authRoutes = new Hono<AppBindings>()
       await enforceRateLimit(c.env, `auth:verify:ip:${clientIp(c)}`, 20, 600);
       const input = parse(verifyMagicLinkInputSchema, await c.req.json());
       const result = await verifyMagicLink(c.env, input.token, {
+         userAgent: c.req.header('user-agent'),
+         ip: c.req.header('cf-connecting-ip'),
+      });
+      setSessionCookie(c, result.sessionToken, result.expiresAt);
+      setCsrfCookie(c);
+      return c.json(ok({ user: result.user }));
+   })
+   .post('/verify-code', async (c) => {
+      await enforceRateLimit(c.env, `auth:code:ip:${clientIp(c)}`, 20, 600);
+      const input = parse(verifyLoginCodeInputSchema, await c.req.json());
+      await enforceRateLimit(c.env, `auth:code:email:${input.email.toLowerCase()}`, 10, 900);
+      const result = await verifyLoginCode(c.env, input.email, input.code, {
          userAgent: c.req.header('user-agent'),
          ip: c.req.header('cf-connecting-ip'),
       });

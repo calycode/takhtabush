@@ -8,8 +8,8 @@ routes, see [Self-hosting](self-hosting.md).
 
 | Name                 | Default                          | Purpose                                                                              |
 | -------------------- | -------------------------------- | ------------------------------------------------------------------------------------ |
-| `APP_URL`            | empty                            | Public origin used in magic-link emails. Empty means “use the request origin”.       |
-| `ENVIRONMENT`        | `production`                     | `development` enables dev-only shortcuts such as returning the magic-link token.     |
+| `APP_URL`            | empty                            | Public origin used in sign-in emails. Empty means “use the request origin”.          |
+| `ENVIRONMENT`        | `production`                     | `development` enables dev-only shortcuts such as returning the token and code.       |
 | `EMAIL_FROM`         | empty                            | Sender address for the Email Service `EMAIL` binding. Empty disables email delivery. |
 | `OWNER_EMAIL`        | empty                            | Pins the only allowed owner address.                                                 |
 | `ALLOWED_EMAILS`     | empty                            | Comma-separated allowlist; when set, it is the complete allowlist for new accounts.  |
@@ -24,9 +24,9 @@ Set these with `wrangler secret put` or the Cloudflare dashboard:
 
 | Name                 | Required  | Purpose                                                                              |
 | -------------------- | --------- | ------------------------------------------------------------------------------------ |
-| `SESSION_SECRET`     | Yes       | Hashes session and magic-link tokens; signs OAuth consent cookies. 32+ random bytes. |
+| `SESSION_SECRET`     | Yes       | Hashes session, link and code tokens; signs OAuth consent cookies. 32+ random bytes. |
 | `SETUP_TOKEN`        | For setup | Enables `/setup`, which creates or recovers the owner.                               |
-| `OWNER_INVITE_TOKEN` | Optional  | Requires a matching invite value on magic-link requests.                             |
+| `OWNER_INVITE_TOKEN` | Optional  | Requires a matching invite value on sign-in requests.                                |
 | `AI_GATEWAY_TOKEN`   | Optional  | Authenticates AI Gateway calls.                                                      |
 
 ## Local overrides
@@ -50,7 +50,7 @@ SETUP_TOKEN=dev-setup-token
 | `OAUTH_KV` | KV                       | OAuth grants, refresh tokens, clients |
 | `CACHE`    | KV                       | Derived review streak and tag summary |
 | `AI`       | Workers AI               | Clef fallback                         |
-| `EMAIL`    | Cloudflare Email Service | Magic links                           |
+| `EMAIL`    | Cloudflare Email Service | Sign-in codes and links               |
 | `ASSETS`   | Static assets            | The built SPA                         |
 
 `CACHE` is deliberately separate from `OAUTH_KV`: it holds only stale-tolerant,
