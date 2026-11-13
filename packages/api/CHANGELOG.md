@@ -1,5 +1,15 @@
 # @caly/api
 
+## 0.4.1
+
+### Patch Changes
+
+- 17581f9: Add a Playwright end-to-end suite that gates changes before main
+- @caly/mcp@0.4.1
+   - @caly/shared@0.4.1
+   - @caly/study-widget@0.4.1
+   - @caly/worker-kit@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes
