@@ -123,6 +123,21 @@ importers:
 
    packages/docs: {}
 
+   packages/e2e:
+      devDependencies:
+         '@caly/shared':
+            specifier: workspace:*
+            version: link:../shared
+         '@playwright/test':
+            specifier: ^1.57.0
+            version: 1.65.0
+         '@types/node':
+            specifier: ^26.6.5
+            version: 26.6.6
+         typescript:
+            specifier: ^6.0.3
+            version: 6.0.3
+
    packages/mcp:
       dependencies:
          '@caly/shared':
@@ -1999,6 +2014,14 @@ packages:
          {
             integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==,
          }
+
+   '@playwright/test@1.65.0':
+      resolution:
+         {
+            integrity: sha512-iGURLGuKDLakSEl7Pgfv8h7f+XLT+V861Wfhz0zlEl5nyFuKUopdkFBPKqTllTUp06aOwPuH8iuUEb3yp3MpbQ==,
+         }
+      engines: { node: '>=20' }
+      hasBin: true
 
    '@pnpm/config.env-replace@1.1.0':
       resolution:
@@ -5745,6 +5768,22 @@ packages:
          }
       engines: { node: '>=8' }
 
+   playwright-core@1.65.0:
+      resolution:
+         {
+            integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==,
+         }
+      engines: { node: '>=20' }
+      hasBin: true
+
+   playwright@1.65.0:
+      resolution:
+         {
+            integrity: sha512-F3AMWcR44qMBt4kq+6Kb6mX7bjGXshktKFOPULd7reED6ZJWevjbNRqysP7q+AATE9kdPEZBibex1BYsvpVoeA==,
+         }
+      engines: { node: '>=20' }
+      hasBin: true
+
    postcss-selector-parser@7.1.6:
       resolution:
          {
@@ -8163,6 +8202,10 @@ snapshots:
 
    '@pinojs/redact@0.4.0': {}
 
+   '@playwright/test@1.65.0':
+      dependencies:
+         playwright: 1.65.0
+
    '@pnpm/config.env-replace@1.1.0': {}
 
    '@pnpm/deps.graph-sequencer@1100.0.1': {}
@@ -10276,6 +10319,12 @@ snapshots:
    pkg-up@3.1.0:
       dependencies:
          find-up: 3.0.0
+
+   playwright-core@1.65.0: {}
+
+   playwright@1.65.0:
+      dependencies:
+         playwright-core: 1.65.0
 
    postcss-selector-parser@7.1.6:
       dependencies:

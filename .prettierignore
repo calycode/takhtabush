@@ -11,3 +11,8 @@ dist-dev/
 docs-site/
 .turbo/
 .wrangler/
+
+# Playwright run output and the throwaway local database.
+packages/e2e/.artifacts/
+packages/e2e/.state/
+packages/e2e/auth.json
