@@ -32,12 +32,17 @@ pnpm format:check
 pnpm lint
 pnpm check-types
 pnpm test
+pnpm e2e
 pnpm build:all
 pnpm knip
 pnpm db:migrate:check
 ```
 
-`pnpm format` fixes formatting. CI runs the same set.
+`pnpm format` fixes formatting. CI runs the same set. `pnpm e2e` is the
+Playwright suite against a real local Worker, D1, and R2; install the browser
+once with `pnpm e2e:install`. The Husky `pre-push` hook runs only the `@smoke`
+tier (`pnpm e2e:smoke`); set `SKIP_E2E=1` to bypass it. See
+[`packages/e2e/README.md`](./packages/e2e/README.md).
 
 ## Where things live
 
@@ -48,6 +53,7 @@ pnpm db:migrate:check
 - `packages/ui` — shared shadcn (Base UI) primitives and study presentation.
 - `packages/worker-kit` — binding-agnostic Worker helpers.
 - `packages/study-widget` — the optional MCP Apps study widget.
+- `packages/e2e` — Playwright end-to-end suite (not shipped).
 
 Read [`CONTEXT.md`](./CONTEXT.md) for the domain language and
 [`docs/architecture.md`](./docs/architecture.md) for the request flow.

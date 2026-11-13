@@ -1,0 +1,21 @@
+{
+   "name": "@caly/e2e",
+   "version": "0.1.0",
+   "private": true,
+   "license": "MIT",
+   "type": "module",
+   "scripts": {
+      "e2e": "node scripts/prepare.mjs && playwright test",
+      "e2e:smoke": "node scripts/prepare.mjs && playwright test --grep @smoke",
+      "e2e:ui": "node scripts/prepare.mjs && playwright test --ui",
+      "e2e:install": "playwright install chromium",
+      "lint": "eslint .",
+      "check-types": "tsc --noEmit -p tsconfig.json"
+   },
+   "devDependencies": {
+      "@caly/shared": "workspace:*",
+      "@playwright/test": "^1.57.0",
+      "@types/node": "^26.6.5",
+      "typescript": "^6.0.3"
+   }
+}

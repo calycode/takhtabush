@@ -56,6 +56,14 @@
 - Suspended cards (`cards.status = 'suspended'`) are excluded from automatic sessions and due/new/weak queues.
 - Study sessions are listable/resumable; exiting early abandons the session.
 
+## End-to-end tests
+
+- `packages/e2e` is Playwright against the production-shaped Worker: built SPA assets, `wrangler dev`, real local D1/R2, throwaway `.state` per run.
+- `pnpm e2e` runs the suite; `pnpm e2e:smoke` runs the `@smoke` tier, which is what `.husky/pre-push` calls. `SKIP_E2E=1` bypasses the hook.
+- Isolate with `uniqueName()`. One owner and one database are shared, so never assert global counts, "Latest deck", streak, or heatmap values.
+- Seed through the `api` fixture unless the interaction under test is the UI. No `waitForTimeout`; no retries.
+- The suite must never point at anything but localhost; the config enforces it.
+
 ## Versioning and changelog
 
 - Every user-visible change ships with a changeset. Run `pnpm changeset`, choose the affected package(s) and bump type, and commit the generated `.changeset/*.md` file with the change. Tooling-only, test-only, and docs-only changes do not need one.

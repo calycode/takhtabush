@@ -10,10 +10,23 @@ export default tseslint.config(
          '**/.turbo/**',
          '**/coverage/**',
          '**/worker-configuration.d.ts',
+         '**/.artifacts/**',
+         '**/.state/**',
       ],
    },
    js.configs.recommended,
    ...tseslint.configs.recommended,
+   {
+      files: ['**/*.mjs'],
+      languageOptions: {
+         // The e2e server script runs on Node and talks to the local Worker.
+         globals: {
+            console: 'readonly',
+            process: 'readonly',
+            setTimeout: 'readonly',
+         },
+      },
+   },
    {
       rules: {
          '@typescript-eslint/no-unused-vars': [

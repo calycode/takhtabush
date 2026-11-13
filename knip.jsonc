@@ -25,6 +25,10 @@
       "packages/webapp": {
          "project": ["src/**/*.{ts,tsx}"],
       },
+      "packages/e2e": {
+         "project": ["*.ts", "support/**/*.ts", "tests/**/*.ts"],
+         "entry": ["tests/**/*.spec.ts"],
+      },
       "packages/browser-extension": {
          "project": ["src/**/*.ts"],
          "entry": ["src/entrypoints/**/*.ts"],

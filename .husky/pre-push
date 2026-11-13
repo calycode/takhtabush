@@ -1,0 +1,7 @@
+# Run the fast e2e tier before every push. Set SKIP_E2E=1 to bypass.
+# Install the browser once per machine with `pnpm e2e:install`.
+if [ "${SKIP_E2E:-0}" = "1" ]; then
+   exit 0
+fi
+
+pnpm e2e:smoke

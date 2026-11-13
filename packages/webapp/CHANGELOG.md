@@ -1,5 +1,12 @@
 # @caly/webapp
 
+## 0.4.1
+
+### Patch Changes
+
+- @caly/shared@0.4.1
+   - @caly/ui@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes
