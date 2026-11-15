@@ -14,15 +14,16 @@ export function AppShell({ children }: { children: ComponentChildren }) {
          >
             <a
                href='/'
-               className='inline-flex items-center'
+               className='inline-flex items-center gap-2'
             >
                <img
-                  src='/logo-long.png'
-                  alt='Takhtabush'
-                  width='66'
+                  src='/logo.svg'
+                  alt=''
+                  width='32'
                   height='32'
-                  className='h-8 w-auto'
+                  className='h-8 w-8'
                />
+               <span className='font-heading text-lg font-semibold tracking-tight'>Takhtabush</span>
             </a>
             <AvatarMenu />
          </header>

@@ -130,8 +130,12 @@ a {
 }
 .d-brand img {
    display: block;
-   height: 32px;
+   height: 28px;
    width: auto;
+}
+.d-brand__name {
+   font-size: 1.02rem;
+   letter-spacing: -0.01em;
 }
 .d-brand__tag {
    font-size: 0.72em;
