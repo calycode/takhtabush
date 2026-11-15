@@ -16,6 +16,6 @@
       "@caly/shared": "workspace:*",
       "@playwright/test": "^1.57.0",
       "@types/node": "^26.6.5",
-      "typescript": "^6.0.3"
+      "typescript": "^7.0.2"
    }
 }
