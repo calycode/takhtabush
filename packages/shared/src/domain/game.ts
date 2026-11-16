@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idSchema } from '../api/common';
+import { seededShuffle } from './shuffle';
 
 export const gameModeSchema = z.enum(['survival', 'boss']);
 export type GameMode = z.infer<typeof gameModeSchema>;
@@ -38,11 +39,21 @@ export type GameState = z.infer<typeof gameStateSchema>;
 
 export const GAME_LIVES = 3;
 
-/** Build the initial authoritative state for a new arcade session. */
-export function createGameState(kind: GameMode, cardIds: string[]): GameState {
+/** The most bosses a single run can draw from the candidate pool. */
+export const MAX_BOSSES = 6;
+
+/**
+ * Build the initial authoritative state for a new arcade session.
+ *
+ * Boss runs shuffle the candidate pool before drawing: the plan is weak-first,
+ * so without this every replay fought the same bosses in the same order. The
+ * seed is the session id, keeping a run reproducible from its stored state.
+ */
+export function createGameState(kind: GameMode, cardIds: string[], seed = ''): GameState {
    const startedAt = new Date().toISOString();
    if (kind === 'boss') {
-      const bosses = cardIds.slice(0, 6).map((cardId, index) => {
+      const roster = seededShuffle(cardIds, seed || startedAt).slice(0, MAX_BOSSES);
+      const bosses = roster.map((cardId, index) => {
          const maxHp = Math.min(6, 3 + index);
          return { cardId, hp: maxHp, maxHp };
       });

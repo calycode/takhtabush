@@ -205,7 +205,7 @@ export async function startSession(
          });
          plan = fallback.plan;
       }
-      game = createGameState(input.game, plan.cardIds);
+      game = createGameState(input.game, plan.cardIds, plan.sessionId);
       if (game.status === 'won') {
          throw conflict('This deck does not have enough cards to start an arcade session.');
       }

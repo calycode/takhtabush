@@ -18,15 +18,28 @@ describe('createGameState', () => {
       expect(gameCurrentCardId(game)).toBe('card_1');
    });
 
-   it('scales boss HP and caps the boss list', () => {
-      const game = createGameState(
-         'boss',
-         Array.from({ length: 8 }, (_, index) => `card_${index + 1}`),
-      );
+   it('draws a shuffled, capped boss roster from the pool', () => {
+      const ids = Array.from({ length: 8 }, (_, index) => `card_${index + 1}`);
+      const game = createGameState('boss', ids, 'session-a');
+      const replay = createGameState('boss', ids, 'session-a');
+
       expect(game.bosses).toHaveLength(6);
-      expect(game.bosses[0]).toMatchObject({ cardId: 'card_1', hp: 3, maxHp: 3 });
-      expect(game.bosses[5]!.maxHp).toBe(6);
-      expect(gameCurrentCardId(game)).toBe('card_1');
+      expect(new Set(game.bosses.map((boss) => boss.cardId)).size).toBe(6);
+      // Same seed reproduces the same gauntlet, even from the same card pool.
+      expect(game.bosses.map((boss) => boss.cardId)).toEqual(
+         replay.bosses.map((boss) => boss.cardId),
+      );
+      expect(game.bosses.map((boss) => boss.maxHp)).toEqual([3, 4, 5, 6, 6, 6]);
+      expect(game.bosses.map((boss) => boss.hp)).toEqual([3, 4, 5, 6, 6, 6]);
+      expect(gameCurrentCardId(game)).toBe(game.bosses[0]!.cardId);
+   });
+
+   it('reshuffles bosses for each run', () => {
+      const ids = Array.from({ length: 20 }, (_, index) => `card_${index + 1}`);
+      const first = createGameState('boss', ids, 'run-a').bosses.map((boss) => boss.cardId);
+      const second = createGameState('boss', ids, 'run-b').bosses.map((boss) => boss.cardId);
+
+      expect(first).not.toEqual(second);
    });
 
    it('returns a completed state when there are no cards', () => {
@@ -88,10 +101,12 @@ describe('advanceGameState', () => {
    });
 
    it('keeps the same boss active while HP remains', () => {
-      const start = createGameState('boss', ['card_1', 'card_2']);
+      const start = createGameState('boss', ['card_1', 'card_2'], 'stable-run');
+      const active = gameCurrentCardId(start);
+      const startHp = start.bosses[0]!.hp;
       const next = advanceGameState(start, true);
-      expect(next.bosses[0]?.cardId).toBe('card_1');
-      expect(next.bosses[0]?.hp).toBe(2);
+      expect(next.bosses[0]?.cardId).toBe(active);
+      expect(next.bosses[0]?.hp).toBe(startHp - 1);
       expect(next.status).toBe('playing');
    });
 });

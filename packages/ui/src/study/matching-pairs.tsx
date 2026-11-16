@@ -23,7 +23,8 @@ export function MatchingPairs({
    onPair: (card: StudyCardData, signals: PairSignals) => Promise<boolean> | void;
    onComplete?: () => void;
 }) {
-   const seed = cards.map((card) => card.id).join('|');
+   const [shuffleSeed] = useState(() => Math.random().toString(36).slice(2));
+   const seed = `${cards.map((card) => card.id).join('|')}|${shuffleSeed}`;
    const rightItems = useMemo(
       () =>
          seededShuffle(

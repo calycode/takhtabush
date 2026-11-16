@@ -163,6 +163,7 @@ export function StudySession({ sessionId }: { sessionId?: string }) {
                   .catch(() => undefined);
             }}
             onExit={() => route(`/decks/${session.deckId}`)}
+            onAbandon={abandonAndExit}
             onStats={() => route(`/stats/${session.deckId}`)}
          />
       );

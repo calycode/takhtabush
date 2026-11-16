@@ -39,6 +39,9 @@ export function StudyCard({ card, mode, pool, busy, onAnswered }: StudyCardProps
    const [text, setText] = useState('');
    const [result, setResult] = useState<'correct' | 'incorrect' | null>(null);
    const [grade, setGrade] = useState<ReviewResponse | null>(null);
+   // A fresh seed per mount reshuffles options for each showing of a card, so
+   // the correct answer does not stay in a fixed position across attempts.
+   const [optionSeed] = useState(() => Math.random().toString(36).slice(2));
    const timer = useRef<number | undefined>(undefined);
    const startedAt = useRef(Date.now());
    const inputRef = useRef<HTMLInputElement>(null);
@@ -48,8 +51,8 @@ export function StudyCard({ card, mode, pool, busy, onAnswered }: StudyCardProps
    const correctValue = useMemo(() => cardAnswer(card), [card]);
 
    const options = useMemo(
-      () => (interaction === 'choice' ? choiceOptionsFor(card, pool) : []),
-      [interaction, card, pool],
+      () => (interaction === 'choice' ? choiceOptionsFor(card, pool, optionSeed) : []),
+      [interaction, card, pool, optionSeed],
    );
 
    function answer(response: ReviewResponse) {

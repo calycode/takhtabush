@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
    DEFAULT_EASE,
+   HARD_NEW_INTERVAL_DAYS,
+   INTERVAL_FUZZ,
    MIN_EASE,
    SCHEDULER_VERSION,
    isDue,
@@ -20,19 +22,40 @@ describe('scheduler', () => {
       expect(isDue(state, NOW)).toBe(true);
    });
 
-   it('advances good reviews through 1 then 6 day intervals', () => {
+   it('advances good reviews through 1 then ~6 day intervals', () => {
       let state = newLearningState('usr_1', 'card_1', NOW);
       state = scheduleReview(state, 'good', NOW);
       expect(state.intervalDays).toBe(1);
       expect(state.repetitions).toBe(1);
 
       state = scheduleReview(state, 'good', NOW);
-      expect(state.intervalDays).toBe(6);
+      expect(state.intervalDays).toBeGreaterThanOrEqual(6 * (1 - INTERVAL_FUZZ));
+      expect(state.intervalDays).toBeLessThanOrEqual(6 * (1 + INTERVAL_FUZZ));
       expect(state.repetitions).toBe(2);
+   });
 
-      const ease = state.ease ?? DEFAULT_EASE;
-      state = scheduleReview(state, 'good', NOW);
-      expect(state.intervalDays).toBe(6 * ease);
+   it('brings a new card graded hard back before one graded good', () => {
+      const hard = scheduleReview(newLearningState('usr_1', 'card_1', NOW), 'hard', NOW);
+      const good = scheduleReview(newLearningState('usr_1', 'card_1', NOW), 'good', NOW);
+      expect(hard.intervalDays).toBe(HARD_NEW_INTERVAL_DAYS);
+      expect(hard.intervalDays ?? 0).toBeLessThan(good.intervalDays ?? 0);
+   });
+
+   it('fuzzes long intervals deterministically within the spread', () => {
+      const base = newLearningState('usr_1', 'card_1', NOW);
+      const first = scheduleReview(base, 'easy', NOW);
+      const second = scheduleReview(base, 'easy', NOW);
+      expect(first.intervalDays).toBe(second.intervalDays);
+
+      let state = base;
+      for (let i = 0; i < 6; i++) state = scheduleReview(state, 'good', NOW);
+      const previous = state.intervalDays ?? 0;
+      expect(previous).toBeGreaterThan(2);
+
+      const expected = previous * (state.ease ?? DEFAULT_EASE);
+      const next = scheduleReview(state, 'good', NOW);
+      expect(next.intervalDays).toBeGreaterThanOrEqual(expected * (1 - INTERVAL_FUZZ) - 0.01);
+      expect(next.intervalDays).toBeLessThanOrEqual(expected * (1 + INTERVAL_FUZZ) + 0.01);
    });
 
    it('resets repetitions and records a lapse on "again"', () => {

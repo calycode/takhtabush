@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { idSchema, isoDateSchema } from '../api/common';
 import type { ReviewResponse } from './modes';
+import { seededRandom } from './shuffle';
 
 /**
  * Versioning for the deterministic scheduler (SPEC §7.2).
@@ -8,12 +9,15 @@ import type { ReviewResponse } from './modes';
  * Bump this whenever {@link scheduleReview} changes its math. The version is
  * stored per `learning_state` row so old rows can be migrated or rebuilt.
  */
-export const SCHEDULER_VERSION = 1;
+export const SCHEDULER_VERSION = 2;
 
 export const MIN_EASE = 1.3;
 export const MAX_EASE = 2.8;
 export const DEFAULT_EASE = 2.5;
 export const AGAIN_DELAY_MINUTES = 10;
+export const HARD_NEW_INTERVAL_DAYS = 0.5;
+/** ±5% spread applied to intervals of two days or more. */
+export const INTERVAL_FUZZ = 0.05;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const learningStateSchema = z.object({
@@ -33,6 +37,18 @@ export type LearningState = z.infer<typeof learningStateSchema>;
 
 function clamp(value: number, min: number, max: number): number {
    return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Spread intervals of two days or more by a few percent. Cards introduced on
+ * the same day would otherwise stay locked to the same due date forever,
+ * producing uneven review piles. The seed is derived from the card and the
+ * transition, so the result is still deterministic and rebuildable.
+ */
+function fuzzInterval(interval: number, seed: string): number {
+   if (interval < 2) return interval;
+   const factor = 1 + (seededRandom(seed) * 2 - 1) * INTERVAL_FUZZ;
+   return Math.max(1, interval * factor);
 }
 
 /** A brand-new card, due immediately. */
@@ -86,7 +102,9 @@ export function scheduleReview(
       }
       case 'hard': {
          nextEase = clamp(ease - 0.15, MIN_EASE, MAX_EASE);
-         nextInterval = Math.max(1, interval * 1.2);
+         // A brand-new card graded hard should come back before a good card,
+         // not share its one-day interval.
+         nextInterval = repetitions === 0 ? HARD_NEW_INTERVAL_DAYS : Math.max(1, interval * 1.2);
          nextRepetitions = repetitions + 1;
          phase = 'review';
          break;
@@ -108,6 +126,12 @@ export function scheduleReview(
       }
    }
 
+   if (response !== 'again') {
+      nextInterval = fuzzInterval(
+         nextInterval,
+         `${SCHEDULER_VERSION}|${state.cardId}|${response}|${nextRepetitions}|${Math.round(nextInterval * 100)}`,
+      );
+   }
    nextInterval = Math.round(nextInterval * 100) / 100;
 
    const dueAt =

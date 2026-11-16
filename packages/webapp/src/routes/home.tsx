@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { buttonVariants } from '@caly/ui/components/button';
+import { Button, buttonVariants } from '@caly/ui/components/button';
 import {
    Card,
    CardContent,
@@ -15,7 +15,7 @@ import type { Deck, OverviewStats, StudySession } from '@caly/shared';
 import { ApiError } from '../lib/api/client';
 import { listDecks } from '../lib/api/decks';
 import { getOverviewStats } from '../lib/api/stats';
-import { listSessions } from '../lib/api/study';
+import { listSessions, abandonSession } from '../lib/api/study';
 import { DeckLibrary } from '../components/deck-library';
 import { ReviewHeatmap } from '../components/review-heatmap';
 import { StreakFlame } from '../components/streak-flame';
@@ -26,6 +26,8 @@ export function Home() {
    const [overview, setOverview] = useState<OverviewStats | null>(null);
    const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'auth'>('loading');
    const [error, setError] = useState<string | null>(null);
+   const [sessionError, setSessionError] = useState<string | null>(null);
+   const [abandoningId, setAbandoningId] = useState<string | null>(null);
 
    useEffect(() => {
       Promise.all([
@@ -54,6 +56,22 @@ export function Home() {
    const deckName = (deckId: string) => decks.find((deck) => deck.id === deckId)?.title ?? 'Deck';
    const totalCards = decks.reduce((sum, deck) => sum + deck.cardCount, 0);
    const latest = decks[0];
+
+   async function discardSession(id: string) {
+      if (abandoningId) return;
+      setAbandoningId(id);
+      setSessionError(null);
+      try {
+         await abandonSession(id);
+         setSessions((current) => current.filter((session) => session.id !== id));
+      } catch (cause) {
+         setSessionError(
+            cause instanceof ApiError ? cause.message : 'Could not abandon the session',
+         );
+      } finally {
+         setAbandoningId(null);
+      }
+   }
 
    return (
       <section className='flex flex-col gap-6'>
@@ -132,6 +150,7 @@ export function Home() {
                   </CardDescription>
                </CardHeader>
                <CardContent className='flex flex-col gap-3'>
+                  {sessionError && <p className='text-xs text-destructive'>{sessionError}</p>}
                   {sessions.map((session) => (
                      <div
                         key={session.id}
@@ -146,12 +165,22 @@ export function Home() {
                               · {new Date(session.startedAt).toLocaleString()}
                            </span>
                         </span>
-                        <a
-                           href={`/study/${session.id}`}
-                           className={buttonVariants({ size: 'sm', variant: 'outline' })}
-                        >
-                           Resume
-                        </a>
+                        <span className='flex items-center gap-2'>
+                           <a
+                              href={`/study/${session.id}`}
+                              className={buttonVariants({ size: 'sm', variant: 'outline' })}
+                           >
+                              Resume
+                           </a>
+                           <Button
+                              variant='ghost'
+                              size='sm'
+                              disabled={abandoningId !== null}
+                              onClick={() => void discardSession(session.id)}
+                           >
+                              {abandoningId === session.id ? 'Abandoning…' : 'Abandon'}
+                           </Button>
+                        </span>
                      </div>
                   ))}
                </CardContent>
