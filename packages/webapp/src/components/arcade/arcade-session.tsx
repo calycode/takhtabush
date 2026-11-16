@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Alert, AlertDescription } from '@caly/ui/components/alert';
+import { Button } from '@caly/ui/components/button';
+import {
+   Dialog,
+   DialogContent,
+   DialogDescription,
+   DialogFooter,
+   DialogHeader,
+   DialogTitle,
+} from '@caly/ui/components/dialog';
 import { BitButton, BitProgress, EnemyHealthDisplay } from '@caly/ui/arcade';
 import {
    cardAnswer,
@@ -22,6 +31,7 @@ export function ArcadeSession({
    onGameUpdate,
    onGameEnd,
    onExit,
+   onAbandon,
    onStats,
 }: {
    session: StudySessionDetail;
@@ -29,6 +39,7 @@ export function ArcadeSession({
    onGameUpdate: (game: GameState) => void;
    onGameEnd?: (game: GameState) => void;
    onExit: () => void;
+   onAbandon: () => void | Promise<void>;
    onStats: () => void;
 }) {
    const game = session.game!;
@@ -36,6 +47,9 @@ export function ArcadeSession({
    const [result, setResult] = useState<'correct' | 'incorrect' | null>(null);
    const [busy, setBusy] = useState(false);
    const [error, setError] = useState<string | null>(null);
+   const [exitOpen, setExitOpen] = useState(false);
+   const [leaving, setLeaving] = useState(false);
+   const [optionSeed, setOptionSeed] = useState(() => Math.random().toString(36).slice(2));
    const startedAt = useRef(Date.now());
    const timer = useRef<number | undefined>(undefined);
    const notified = useRef(false);
@@ -45,8 +59,8 @@ export function ArcadeSession({
    const currentData = currentCard ? toStudyCardData(currentCard) : null;
    const pool = useMemo(() => Object.values(cardsById).map(toStudyCardData), [cardsById]);
    const options = useMemo(
-      () => (currentData ? choiceOptionsFor(currentData, pool) : []),
-      [currentData, pool],
+      () => (currentData ? choiceOptionsFor(currentData, pool, optionSeed) : []),
+      [currentData, pool, optionSeed],
    );
    const correctValue = currentData ? cardAnswer(currentData) : '';
    const boss = game.bosses[0];
@@ -54,6 +68,7 @@ export function ArcadeSession({
    useEffect(() => {
       setPicked(null);
       setResult(null);
+      setOptionSeed(Math.random().toString(36).slice(2));
       startedAt.current = Date.now();
    }, [currentCardId, game.answered]);
 
@@ -100,6 +115,17 @@ export function ArcadeSession({
             })
             .finally(() => setBusy(false));
       }, 500);
+   }
+
+   async function abandonRun() {
+      if (leaving) return;
+      setLeaving(true);
+      try {
+         await onAbandon();
+      } finally {
+         setLeaving(false);
+         setExitOpen(false);
+      }
    }
 
    if (game.status !== 'playing') {
@@ -167,7 +193,7 @@ export function ArcadeSession({
          statusDetail={`SCORE ${game.score.toLocaleString()}`}
          minimizable={false}
          size='wide'
-         onClose={onExit}
+         onClose={() => setExitOpen(true)}
       >
          <div className='flex flex-col gap-3 text-foreground'>
             <div className='flex flex-wrap items-center justify-between gap-2'>
@@ -287,6 +313,45 @@ export function ArcadeSession({
                </p>
             )}
          </div>
+
+         <Dialog
+            open={exitOpen}
+            onOpenChange={setExitOpen}
+         >
+            <DialogContent>
+               <DialogHeader>
+                  <DialogTitle>Leave the arcade run?</DialogTitle>
+                  <DialogDescription>
+                     Pause to keep this run on your dashboard and continue later, or abandon it to
+                     remove it from your active list. Reviews you already answered still count.
+                  </DialogDescription>
+               </DialogHeader>
+               <DialogFooter>
+                  <Button
+                     variant='outline'
+                     onClick={() => setExitOpen(false)}
+                  >
+                     Keep playing
+                  </Button>
+                  <Button
+                     variant='outline'
+                     onClick={() => {
+                        setExitOpen(false);
+                        onExit();
+                     }}
+                  >
+                     Pause &amp; resume later
+                  </Button>
+                  <Button
+                     variant='destructive'
+                     disabled={busy || leaving}
+                     onClick={() => void abandonRun()}
+                  >
+                     {leaving ? 'Abandoning…' : 'Abandon run'}
+                  </Button>
+               </DialogFooter>
+            </DialogContent>
+         </Dialog>
       </ArcadeCabinet>
    );
 }

@@ -25,7 +25,20 @@ describe('shared study card helpers', () => {
       });
 
       expect(cardAnswer(item)).toBe('goodbye');
-      expect(choiceOptionsFor(item, [])).toEqual(['hello', 'goodbye']);
+      expect(choiceOptionsFor(item, []).sort()).toEqual(['goodbye', 'hello']);
+   });
+
+   it('shuffles authored options instead of trusting their order', () => {
+      const item = card({
+         choices: ['a', 'b', 'c', 'd'],
+         correctChoice: 0,
+      });
+      const first = choiceOptionsFor(item, [], 'attempt-1');
+      const second = choiceOptionsFor(item, [], 'attempt-2');
+
+      expect(first).not.toEqual(second);
+      expect(first.slice().sort()).toEqual(['a', 'b', 'c', 'd']);
+      expect(choiceOptionsFor(item, [], 'attempt-1')).toEqual(first);
    });
 
    it('builds distractors from the session pool when a card has no choices', () => {
@@ -50,5 +63,21 @@ describe('shared study card helpers', () => {
 
       expect(seededShuffle(items, 'seed')).toEqual(seededShuffle(items, 'seed'));
       expect(seededShuffle(items, 'seed')).not.toEqual(items);
+   });
+
+   it('drops duplicate distractor text', () => {
+      const pool = [
+         card(),
+         card({ id: 'card_2', back: 'Hello' }),
+         card({ id: 'card_3', back: 'hello!' }),
+         card({ id: 'card_4', back: 'goodbye' }),
+         card({ id: 'card_5', back: 'thanks' }),
+      ];
+
+      const options = choiceOptionsFor(pool[0], pool);
+      expect(options).toContain('hello');
+      expect(options).toContain('goodbye');
+      expect(options).toContain('thanks');
+      expect(new Set(options.map((value) => value.toLowerCase())).size).toBe(options.length);
    });
 });

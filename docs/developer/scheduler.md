@@ -1,21 +1,23 @@
 # Scheduler
 
 The scheduler lives in `packages/shared/src/domain/scheduler.ts`. It is
-SM-2-inspired, deterministic, and versioned with `SCHEDULER_VERSION = 1`.
+SM-2-inspired, deterministic, and versioned with `SCHEDULER_VERSION = 2`.
 
 The user-facing view of studying is in the [user guide](../user/studying.md).
 
 ## Transition
 
-| Response | Ease change | Next interval              | Phase      |
-| -------- | ----------- | -------------------------- | ---------- |
-| `again`  | -0.20       | 10 minutes                 | relearning |
-| `hard`   | -0.15       | 1.2 × current              | review     |
-| `good`   | unchanged   | 1 day, 6 days, then × ease | review     |
-| `easy`   | +0.15       | 3 days, then × ease × 1.3  | review     |
+| Response | Ease change | Next interval                      | Phase      |
+| -------- | ----------- | ---------------------------------- | ---------- |
+| `again`  | -0.20       | 10 minutes                         | relearning |
+| `hard`   | -0.15       | 12 hours (new), then 1.2 × current | review     |
+| `good`   | unchanged   | 1 day, 6 days, then × ease         | review     |
+| `easy`   | +0.15       | 3 days, then × ease × 1.3          | review     |
 
-Ease is clamped to 1.3–2.8. The interval is rounded to two decimals. The same
-state, response, and clock always produce the same next state.
+Ease is clamped to 1.3–2.8. Intervals of two days or more get a deterministic
+±5% fuzz seeded by the card and transition, so cards learned on the same day do
+not keep the same due date forever. The interval is rounded to two decimals. The
+same state, response, and clock always produce the same next state.
 
 ## State and events
 
